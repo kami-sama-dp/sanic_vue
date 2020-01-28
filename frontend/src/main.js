@@ -3,12 +3,15 @@ import App from './App.vue'
 import VueRouter from 'vue-router'
 import routes from './router/index'
 import store from './store'
-import ElementUI from 'element-ui'
+import ElementUI, { MessageBox } from 'element-ui'
 import axios from  'axios'
 import 'element-ui/lib/theme-chalk/index.css'
 
 Vue.prototype.$axios = axios
+Vue.prototype.$confirm = MessageBox.confirm
 Vue.config.productionTip = false
+
+
 
 Vue.use(ElementUI)
 Vue.use(VueRouter)

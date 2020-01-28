@@ -168,3 +168,6 @@ body {
 .el-pagination {
   margin-top: 12px;
 }
+.el-table--enable-row-hover .el-table__body tr:hover > td {
+  background-color: #c2c2cc !important;
+}
