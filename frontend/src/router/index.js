@@ -22,7 +22,8 @@ export default[
 			},
 			{
 				path:'/serverMachine',
-				component:serverMachine
+				component:serverMachine,
+				meta: ['服务器列表'],
 			},
 			{
 				path:'/testReport',
@@ -34,7 +35,8 @@ export default[
 			},
 			{
 				path:'/home',
-				component:home
+				component:home,
+				meta:[]
 			}
 		]
 	},

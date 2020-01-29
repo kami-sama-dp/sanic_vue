@@ -27,10 +27,11 @@
         :visible.sync="dialogFormVisible"
         :close-on-click-modal="false"
         @close="closeDialog('machineRef')"
+        :destroy-on-close="true"
       >
         <el-form :model="form" ref="machineRef" :rules="addMachineRules">
           <el-form-item label="服务器地址:" :label-width="formLabelWidth" prop="ip">
-            <el-input v-model="form.ip" class="input_width"></el-input>
+            <el-input v-model="form.ip" class="input_width" prop></el-input>
           </el-form-item>
           <el-form-item label="服务器端口:" :label-width="formLabelWidth" prop="port">
             <el-input v-model="form.port" class="input_width"></el-input>
@@ -38,7 +39,7 @@
           <el-form-item label="核心数量:" :label-width="formLabelWidth" prop="coresize">
             <el-input v-model="form.coresize" class="input_width"></el-input>
           </el-form-item>
-          <el-form-item label="控制器:" :label-width="formLabelWidth">
+          <el-form-item label="控制器:" :label-width="formLabelWidth" prop="mtype">
             <el-radio v-model="form.mtype" :label="true">是</el-radio>
             <el-radio v-model="form.mtype" :label="false">否</el-radio>
           </el-form-item>
@@ -59,7 +60,7 @@
         height="400"
         v-loading="loading"
       >
-        <el-table-column label="#" prop="id" width="80%"></el-table-column>
+        <el-table-column label="#" width="80%" type='index' :index='indexMethod'></el-table-column>
         <el-table-column label="服务器地址" prop="ip"></el-table-column>
         <el-table-column label="服务器端口" prop="port"></el-table-column>
         <el-table-column label="核心数量" prop="coresize"></el-table-column>
@@ -131,7 +132,7 @@ export default {
       },
       serverMachine: [],
       form: {
-        id:0,
+        id: 0,
         ip: "",
         port: "22",
         coresize: "",
@@ -163,6 +164,10 @@ export default {
     this.getMachineList();
   },
   methods: {
+    // 翻页，连续index索引
+    indexMethod(index){
+      return (index+1) +(this.queryInfo.curPage-1) *this.queryInfo.pageSize
+    },
     async search_ip_data() {
       //搜索框查询, 后期可优化成实时搜索
       this.queryInfo.ip = this.seachIp;
@@ -170,6 +175,14 @@ export default {
       await this.getMachineList();
     },
     closeDialog(refName) {
+      this.form = {
+        id: 0,
+        ip: "",
+        port: "22",
+        coresize: "",
+        mtype: false,
+        desc: ""
+      };
       this.$refs[refName].resetFields();
 
       this.dialogFormVisible = false;
@@ -220,65 +233,69 @@ export default {
     //点击确定按钮,添加数据或修改数据
     async addMachine(refName) {
       this.$refs[refName].validate(async valid => {
-        if (!valid) return;
-        else if (this.dialogTitle == "showeditDialog") {
+        if (!valid) {
+          this.$message.error("格式有误!");
+          return;
+        } else if (this.dialogTitle == "showeditDialog") {
           this.loading = true;
           let formData = JSON.stringify(this.form);
           this.dialogFormVisible = false;
-          const res = await this.$axios.put("/api/machine/" , formData);
-          if(res.status ==200){
-            this.$message.success('编辑成功!');
-            this.getMachineList();  
+          const res = await this.$axios.put("/api/machine/", formData);
+          if (res.status == 200) {
+            this.$message.success("编辑成功!");
+            this.getMachineList();
+          } else {
+            this.$message.error("编辑失败!");
           }
-          else{
-            this.$message.error('编辑失败!')
-          }
-        } else if (this.dialogTitle =='showaddDialog'){
-          
+        } else if (this.dialogTitle == "showaddDialog") {
           this.loading = true;
           let formData = JSON.stringify(this.form);
           this.dialogFormVisible = false;
-          const res = await this.$axios.post("/api/machine/" ,formData);
-          if (res.status ==200){
+          const res = await this.$axios.post("/api/machine/", formData);
+          if (res.status == 200) {
             this.$message.success("添加成功!");
             //  this.reload(); // 刷新页面,此时会回到第一页（实际）， 而不是在当前页面刷新（预期）， 此问题未解决
             this.getMachineList(); //  刷新页面的另一种处理方式
-           // this.loading = false; //关闭加载动画特效
-          }
-          else{
-             this.$message.error("添加失败!");
+            // this.loading = false; //关闭加载动画特效
+          } else {
+            this.$message.error("添加失败!");
           }
         }
       });
       this.$refs[refName].resetFields();
       this.dialogFormVisible = false;
     },
-    async removeMachineById(row){
-      const res = await this.$confirm('是否删除？', '确认信息', {
-          distinguishCancelAndClose: false,
-          confirmButtonText: '确认',
-          cancelButtonText: '取消'
-        }).catch(err=>err)
-      if(res=='confirm'){
-        let param = {id:row.id}
-        const _delete = await this.$axios.delete('/api/machine/', {
+    async removeMachineById(row) {
+      const res = await this.$confirm("是否删除？", "确认信息", {
+        distinguishCancelAndClose: false,
+        confirmButtonText: "确认",
+        cancelButtonText: "取消"
+      }).catch(err => err);
+      if (res == "confirm") {
+        let param = { id: row.id };
+        const _delete = await this.$axios.delete("/api/machine/", {
           data: param
-        })
-        if( _delete.status ==200){
-          this.$message.success('删除成功!');
+        });
+        if (_delete.status == 200) {
+          this.$message.success("删除成功!");
           this.getMachineList();
-
-
-        }else {
-         this.$message.error('删除失败!');
+        } else {
+          this.$message.error("删除失败!");
         }
-      }
-      else if (res == 'cancel') {
-        return this.$message.info('已取消删除!');
+      } else if (res == "cancel") {
+        return this.$message.info("已取消删除!");
       }
     },
     // 取消按钮, 清空表单数据
     async cancelOff(refName) {
+      this.form = {
+        id: 0,
+        ip: "",
+        port: "22",
+        coresize: "",
+        mtype: false,
+        desc: ""
+      };
       this.$refs[refName].resetFields();
       this.dialogFormVisible = false;
     },
@@ -293,7 +310,7 @@ export default {
       this.getMachineList();
     }
   }
-  };
+};
 </script>
 
 
