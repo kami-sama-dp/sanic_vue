@@ -7,41 +7,56 @@ import testTask from '../views/testTask'
 import home from '../views/home'
 
 
-export default[
+export default [
 	{
 		path: '/login',
 		component: login
 	},
 	{
-		path:'/manage',
+		path: '/manage',
 		component: manage,
-		children:[
+		children: [
 			{
-				path:'/dataAnalysis',
-				component:dataAnalysis
+				path: '/dataAnalysis',
+				component: dataAnalysis,
+				meta:{
+					title:['数据分析'],
+					requireAuth: true
+				}
 			},
 			{
-				path:'/serverMachine',
-				component:serverMachine,
-				meta: ['服务器列表'],
+				path: '/serverMachine',
+				component: serverMachine,
+				meta:{
+					title:['服务器列表'],
+					requireAuth: true
+				}
 			},
 			{
-				path:'/testReport',
-				component:testReport
+				path: '/testReport',
+				component: testReport,
+				meta:{
+					title:['测试报告'],
+					requireAuth: true
+				}
 			},
 			{
-				path:'/testTask',
-				component:testTask
+				path: '/testTask',
+				component: testTask,
+				meta:{
+					title:['测试任务'],
+					requireAuth: true
+				}
 			},
 			{
-				path:'/home',
-				component:home,
-				meta:[]
+				path: '/home',
+				component: home,
+				meta: []
 			}
 		]
 	},
 	{
-		path:'/',
-		redirect:'/login'
+		path: '/',
+		redirect: '/login'
 	}
 ]

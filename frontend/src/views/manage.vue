@@ -3,7 +3,7 @@
     <DbHeader></DbHeader>
     <el-container class="fillcontain">
       <!--侧边栏-->
-      <el-aside width="230px">
+      <el-aside width="200px">
         <el-menu
           background-color="#333744"
           text-color="#fff"

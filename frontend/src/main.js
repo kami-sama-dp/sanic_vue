@@ -4,11 +4,12 @@ import VueRouter from 'vue-router'
 import routes from './router/index'
 import store from './store'
 import ElementUI, { MessageBox } from 'element-ui'
-import axios from  'axios'
+import axios from  './http'
 import 'element-ui/lib/theme-chalk/index.css'
 
 Vue.prototype.$axios = axios
 Vue.prototype.$confirm = MessageBox.confirm
+
 Vue.config.productionTip = false
 
 
@@ -22,8 +23,37 @@ const router = new VueRouter({
   strict: process.env.NODE_ENV !== 'production',
 })
 
+
+// // 页面刷新时，重新赋值token
+// if (window.localStorage.getItem('token')) {
+//   store.commit(set_token, window.localStorage.getItem('token'))
+// }
+
+//全局路由钩子
+router.beforeEach((to, from, next) => {
+  if (to.meta.requireAuth) {
+      // 检查localStorage
+      if (localStorage.token) {
+          store.commit('set_token', localStorage.token)
+          // 添加axios头部Authorized
+          axios.defaults.auth = {
+              username: store.state.token,
+              password: store.state.token,
+          }
+          next()
+      } else {
+          next({
+              path: '/login',
+          })
+      }
+  } else {
+      next()
+  }
+})
+
 new Vue({
   render: h => h(App),
   router,
   store,
+  axios
 }).$mount('#app')

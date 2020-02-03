@@ -38,3 +38,14 @@
         height: 70px;
     }
 </style>
+
+<script>
+export default {
+    methods: {
+        logout() {
+    this.$store.commit('del_token')
+    this.$router.push('/login')
+}
+    },
+}
+</script>

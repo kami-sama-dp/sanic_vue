@@ -175,7 +175,7 @@ export default {
       await this.getMachineList();
     },
     closeDialog(refName) {
-      this.form = {
+       this.form = {
         id: 0,
         ip: "",
         port: "22",
@@ -183,6 +183,7 @@ export default {
         mtype: false,
         desc: ""
       };
+      
       this.$refs[refName].resetFields();
 
       this.dialogFormVisible = false;
@@ -224,7 +225,7 @@ export default {
           });
           this.loading = false; //关闭加载动画特效
         } else {
-          this.$message.error("获取务器列表数据失败!");
+         return;
         }
       } catch (err) {
         this.$message.error("获取务器列表数据失败!");
@@ -245,7 +246,7 @@ export default {
             this.$message.success("编辑成功!");
             this.getMachineList();
           } else {
-            this.$message.error("编辑失败!");
+           return
           }
         } else if (this.dialogTitle == "showaddDialog") {
           this.loading = true;
@@ -258,7 +259,7 @@ export default {
             this.getMachineList(); //  刷新页面的另一种处理方式
             // this.loading = false; //关闭加载动画特效
           } else {
-            this.$message.error("添加失败!");
+            return;
           }
         }
       });
@@ -280,7 +281,7 @@ export default {
           this.$message.success("删除成功!");
           this.getMachineList();
         } else {
-          this.$message.error("删除失败!");
+          return;
         }
       } else if (res == "cancel") {
         return this.$message.info("已取消删除!");
@@ -319,3 +320,5 @@ export default {
   width: 50%;
 }
 </style>
+
+<!--当最后一页只有一条数据时，删除后，不会自动跳转至前一页，而是仍然处在当前页 （添加数据也有类似问题）后期优化-->
