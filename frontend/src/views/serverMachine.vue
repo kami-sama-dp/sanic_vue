@@ -1,7 +1,7 @@
 <template>
-  <div class="fillcontain" style="overflow:hidden">
+  <div class="fillcontain">
     <HeaderTopMain></HeaderTopMain>
-    <el-card style="margin-top:18px">
+    <el-card style="margin-top:18px;height:95%" >
       <el-row :gutter="10">
         <el-col :span="7">
           <el-input
@@ -57,14 +57,17 @@
         style="margin-top:18px;font-size:12px;width: 100%"
         border
         stripe
-        height="400"
-        v-loading="loading"
-      >
+        height="86%"
+        v-loading="loading">
         <el-table-column label="#" width="80%" type='index' :index='indexMethod'></el-table-column>
         <el-table-column label="服务器地址" prop="ip"></el-table-column>
         <el-table-column label="服务器端口" prop="port"></el-table-column>
         <el-table-column label="核心数量" prop="coresize"></el-table-column>
-        <el-table-column label="控制器" prop="mtype" width="90%"></el-table-column>
+        <el-table-column label="控制器" prop="mtype" width="90%">
+           <template v-slot='scope'>
+           <el-tag :type= "scope.row.mtype =='是'?'':'danger'" >{{scope.row.mtype}}</el-tag>
+         </template>
+        </el-table-column>
         <el-table-column label="备注" prop="desc"></el-table-column>
         <el-table-column label="操作">
           <template v-slot="scope">
@@ -91,7 +94,7 @@
         :page-sizes="[10, 20, 30, 50]"
         :page-size="queryInfo.pageSize"
         layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
+        :total="total" style="margin-top:10px"
       ></el-pagination>
     </el-card>
   </div>
@@ -210,6 +213,8 @@ export default {
           params: this.queryInfo
         });
         if (res.status == 200) {
+          this.$store.commit('remove_master')
+          this.$store.commit('remove_slaves')
           this.total = res.data.total;
           this.serverMachine = [];
           res.data.result.forEach(item => {
@@ -221,6 +226,21 @@ export default {
               mtype: item.mtype == true ? "是" : "否",
               desc: item.desc
             };
+            if (table_item.mtype =='是')
+            {
+              this.$store.commit('set_master', 
+              {
+                id: table_item.id,
+                ip: table_item.ip
+              })
+            }
+            else 
+            {
+              this.$store.commit('set_slaves', {
+                id: table_item.id,
+                ip: table_item.ip
+              })
+            }
             this.serverMachine.push(table_item);
           });
           this.loading = false; //关闭加载动画特效

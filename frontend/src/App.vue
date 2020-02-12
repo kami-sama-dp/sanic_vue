@@ -1,7 +1,8 @@
 <template>
-  <div id="app" class="fillcontain" style="overflow:hidden">
+  <div id="app" class="fillcontain" >
     <router-view v-if="isRouterAlive"></router-view>
   </div>
+
 </template>
 
 

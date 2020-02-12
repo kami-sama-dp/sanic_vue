@@ -75,8 +75,12 @@ export default {
 			  offset: 80,
 			  duration: 3000,
             });
-            let token = res.data.token;
-            this.$store.commit("set_token", token);
+            let token = res.data.token
+            let user = this.loginForm.username
+            this.$store.commit("set_token",{
+              token: token,
+              user: user
+            });
             this.$router.push("/serverMachine");
           }  
         } else return;

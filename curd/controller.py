@@ -1,10 +1,9 @@
-from flask import request, jsonify,g, make_response,abort,Response
-from curd.model import Machine, db, User
+from flask import request, jsonify, g, make_response, abort, Response
+from curd.model import Machine, db, User, TestTask
 from flask_restful import MethodView
 from playhouse.shortcuts import model_to_dict
 from . import auth
 import json
-
 
 
 class all_machine(MethodView):
@@ -53,7 +52,7 @@ class all_machine(MethodView):
             coresize = json_data['coresize']
             mtype = json_data['mtype']
             desc = json_data['desc']
-            Machine.update(ip=ip, port=port, coresize=coresize, mtype=mtype, desc=desc).where(Machine.id==id).execute()
+            Machine.update(ip=ip, port=port, coresize=coresize, mtype=mtype, desc=desc).where(Machine.id == id).execute()
             return 'true'
         except Exception as e:
             return jsonify({'msg': e})
@@ -64,10 +63,84 @@ class all_machine(MethodView):
         try:
             data = request.get_json()
             id = data['id']
-            Machine.delete().where(Machine.id==id).execute()
+            Machine.delete().where(Machine.id == id).execute()
             return 'true'
         except Exception as e:
             return jsonify({'msg': e})
+
+
+class test_task_action(MethodView):
+    # 测试任务相关接口
+    @auth.login_required
+    def get(self):
+        try:
+            task_name, page_size = request.args.get('task_name'), request.args.get('pageSize')
+            cur_page = request.args.get('curPage', 1, type=int)
+            qs = TestTask.filter(taskname=task_name, cur_page=cur_page, page_size=page_size)
+            _result = [model_to_dict(row) for row in qs.result.iterator()]
+            return jsonify({
+                'result': _result,
+                'total': TestTask.counts(),
+                "cur_page": cur_page
+            })
+        except Exception as e:
+            return jsonify({'msg': e})
+
+    @auth.login_required
+    def post(self):
+        try:
+            data = request.get_data()
+            json_data = json.loads(data.decode('utf-8'))
+            print(json_data)
+            username = json_data['username']
+            taskname = json_data['taskname']
+            master = json_data['master']
+            slaves = json_data['slaves']
+            gameserver = json_data['gameserver']
+            autostop = json_data['autostop']
+            runtime = json_data['runtime']
+            testhost = json_data['testhost']
+            usersize = json_data['usersize']
+            userspeed = json_data['userspeed']
+            indextimes = json_data['indextimes']
+            desc = json_data['desc']
+            slaves_core_size = 0
+            slaves_name = ''
+            with db.atomic():
+                for slave_id in slaves:
+                    machine = Machine.filter_by_id(id=slave_id)
+                    slaves_core_size += machine.coresize
+                    slaves_name += machine.ip + ','
+                master_ip = Machine.filter_by_id(id=master).ip
+                TestTask.create(taskname=taskname, user=username, master=master_ip, gameserver=gameserver, slaves=slaves,
+                                autostop=autostop, runtime=runtime, testhost=testhost, usersize=usersize,
+                                userspeed=userspeed, indextimes=indextimes, desc=desc, slaves_name=slaves_name[:-1],
+                                slaves_core_size=slaves_core_size)
+                return 'true'
+        except Exception as e:
+            return jsonify({'msg': e})
+
+    @auth.login_required
+    def put(self):
+        try:
+            return 'put'
+        except Exception as e:
+            return jsonify({'msg': e})
+
+    @auth.login_required
+    def delete(self):
+        try:
+            return 'delete'
+        except Exception as e:
+            return jsonify({'msg': e})
+
+
+
+
+
+
+
+
 
 
 # 登录接口, 查不到则直接注册
@@ -92,7 +165,7 @@ def verify_password(username_or_token, client_password):
         json_data = json.loads(request.get_data().decode('utf-8'))
         user_name = json_data['username']
         pwd = json_data['password']
-        user = User.select().where(User.user_name==user_name).first()
+        user = User.select().where(User.user_name == user_name).first()
         if user is not None and not user.verify_password(pwd):
             abort(403)
         elif user is None:

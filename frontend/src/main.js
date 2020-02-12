@@ -6,6 +6,7 @@ import store from './store'
 import ElementUI, { MessageBox } from 'element-ui'
 import axios from  './http'
 import 'element-ui/lib/theme-chalk/index.css'
+import VueScrollLock from 'vue-scroll-lock'
 
 Vue.prototype.$axios = axios
 Vue.prototype.$confirm = MessageBox.confirm
@@ -16,6 +17,7 @@ Vue.config.productionTip = false
 
 Vue.use(ElementUI)
 Vue.use(VueRouter)
+Vue.use(VueScrollLock)
 
 const router = new VueRouter({
   routes,
@@ -34,7 +36,10 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requireAuth) {
       // 检查localStorage
       if (localStorage.token) {
-          store.commit('set_token', localStorage.token)
+          store.commit('set_token', {
+            token: localStorage.token,
+            user: localStorage.getItem('username')
+          })
           // 添加axios头部Authorized
           axios.defaults.auth = {
               username: store.state.token,
@@ -46,7 +51,8 @@ router.beforeEach((to, from, next) => {
               path: '/login',
           })
       }
-  } else {
+  }
+  else {
       next()
   }
 })

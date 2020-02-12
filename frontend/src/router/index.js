@@ -5,6 +5,7 @@ import serverMachine from '../views/serverMachine'
 import testReport from '../views/testReport'
 import testTask from '../views/testTask'
 import home from '../views/home'
+import addTask from '../views/addTask.vue'
 
 
 export default [
@@ -52,7 +53,15 @@ export default [
 				path: '/home',
 				component: home,
 				meta: []
-			}
+			},
+			{
+				path:'/addTask',
+				component:addTask,
+				meta:{
+					title:['添加测试任务'],
+					requireAuth: true
+				}
+			},
 		]
 	},
 	{

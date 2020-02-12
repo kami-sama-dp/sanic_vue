@@ -10,11 +10,13 @@
   "dependencies": {
     "axios": "^0.19.2",
     "element-ui": "^2.13.0",
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
     "iview": "^3.5.4",
     "less": "^3.10.3",
     "less-loader": "^5.0.0",
     "vue": "^2.6.10",
     "vue-router": "^3.1.5",
+    "vue-scroll-lock": "0.0.6",
     "vuex": "^3.1.2"
   },
   "devDependencies": {
@@ -24,9 +26,9 @@
     "babel-eslint": "^10.0.3",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
-    "vue-template-compiler": "^2.6.10",
-    "webpack": "^2.3.3",
-    "webpack-bundle-analyzer": ">=3.3.2",
+    "vue-template-compiler": "^2.6.11",
+    "webpack": "^4.41.6",
+    "webpack-bundle-analyzer": ">=3.6.0",
     "webpack-dev-middleware": "^1.10.0",
     "webpack-hot-middleware": "^2.18.0",
     "webpack-merge": "^4.1.0"

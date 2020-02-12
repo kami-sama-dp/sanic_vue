@@ -14,3 +14,4 @@ auth = HTTPBasicAuth()
 from . import controller
 api.add_resource(controller.all_machine, '/api/machine/')
 api.add_resource(controller.admin_register, '/api/login/')
+api.add_resource(controller.test_task_action, '/api/test_task/')

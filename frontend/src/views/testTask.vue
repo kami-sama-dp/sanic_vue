@@ -1,7 +1,175 @@
 <template>
   <div class="fillcontain">
-    <h3>成功访问到了testTask.vue</h3>
+    <HeaderTopMain></HeaderTopMain>
+    <el-card class="box-card" style="margin-top:18px;height:95%" >
+      <el-row :gutter="10">
+        <el-col :span="7">
+          <el-input
+            placeholder="请输入内容"
+            v-model.trim="search_task"
+            @keyup.enter.native="search_data"
+            clearable
+            @clear="search_data"
+          >
+            <el-button slot="append" icon="el-icon-search" />
+          </el-input>
+        </el-col>
+        <!-- <el-col :span="2">
+          <el-button type="primary">搜索</el-button>
+        </el-col>-->
+        <el-col :span="3">
+          <el-button type="primary" @click="showaddDialog">添加测试任务</el-button>
+        </el-col>
+      </el-row>
+      
+      <el-table
+        :data="testTask"
+        style="margin-top:18px;font-size:12px;width: 100%"
+        border
+        stripe
+        height="86%"
+        v-loading="loading">
+        <el-table-column label="#" width="80%" type="index" :index="indexMethod"></el-table-column>
+        <el-table-column label="任务名称" prop="task_name"  width="250%"></el-table-column>
+        <el-table-column label="目标主机" prop="testhost" width="90%"></el-table-column>
+        <el-table-column label="运行时长" prop="runtime"  width="90%"></el-table-column>
+        <el-table-column label="自动停止" prop="autostop" width="90%">
+        <template v-slot='scope'>
+           <el-tag :type= "scope.row.autostop =='是'?'':'danger'" >{{scope.row.autostop}}</el-tag>
+         </template>
+        </el-table-column>
+        <el-table-column label="控制器" prop="master" width="95%">
+             <template v-slot='scope'>
+           <el-tag >{{scope.row.master}}</el-tag>
+         </template>
+        </el-table-column>
+        <el-table-column label="客户端列表" prop="slaves_name">
+         <template v-slot='scope'>
+           <el-tag  v-for='(value, index) in scope.row.slaves_name' :key='index' style='margin-left: 5px;'>{{value}}</el-tag>
+         </template>
+        </el-table-column>
+        <el-table-column label="客户端核心总数" prop="slaves_core_size" width="105%"></el-table-column>
+        <el-table-column label="并发用户数" prop="usersize" width="90%"></el-table-column>
+        <el-table-column label="每秒启动用户数" prop="userspeed" width="110%"></el-table-column>
+        <el-table-column label="备注" prop="desc"></el-table-column>
+        <el-table-column label="操作">
+          <template v-slot="scope">
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="mini"
+              @click="editShowDialog(scope.row)"
+            ></el-button>
+            <el-button
+              type="danger"
+              icon="el-icon-delete"
+              size="mini"
+              @click="removeMachineById(scope.row)"
+            ></el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!--分页区域-->
+          <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="queryInfo.curPage"
+        :page-sizes="[10, 20, 30, 50]"
+        :page-size="queryInfo.pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total" style="margin-top:10px"
+      ></el-pagination>
+    </el-card>
   </div>
 </template>
 
+<script>
+import HeaderTopMain from "../components/HeaderTopMain";
+export default {
+  inject: ["reload"],
+  components: {
+    HeaderTopMain
+  },
+  data() {
+    return {
+      slave_tags:[],
+      slave_tag: [],
+      search_task: "",
+      loading: false,
+      testTask: [],
+      total: 0,
+      queryInfo: {
+        task_name: "",
+        curPage: 1,
+        pageSize: 10
+      }
+    };
+  },
+  created() {
+    this.getTaskList();
+  },
+  methods: {
+    // 翻页，连续index索引
+    indexMethod(index) {
+      return index + 1 + (this.queryInfo.curPage - 1) * this.queryInfo.pageSize;
+    },
+    async search_data() {
+      //搜索框查询, 后期可优化成实时搜索
+      this.queryInfo.task_name = this.search_task;
+      this.queryInfo.curPage = 1;
+      await this.getTaskList();
+    },
+    showaddDialog() {
+      this.reload(); //刷新页面
+      this.$router.push("/addTask");
+    },
+    async getTaskList() {
+      try {
+        const res = await this.$axios.get("/api/test_task/", {
+          params: this.queryInfo
+        });
+        console.log(res)
+        if(res.status ==200){
+          this.total = res.data.total;
+          this.testTask = []
+         
+          res.data.result.forEach(item => {
+            this.slave_tags = []
+            const table_item = {
+              id: item.id,
+              task_name: item.taskname,
+              testhost: item.testhost,
+              runtime: item.runtime,
+              autostop: item.autostop == true?'是':'否',
+              slaves_name: item.slaves_name.split(','), 
+              master: item.master,
+              slaves_core_size: item.slaves_core_size,
+              usersize: item.usersize,
+              userspeed: item.userspeed,
+              desc: item.desc,
+            }
+            console.log(table_item.slave_name)
+            this.testTask.push(table_item)
+          });
+        }
+      } catch (err) {
+        this.$message.error("获取务器列表数据失败!");
+      }
+    },
+      // 监听pageSize改变的事件
+    handleSizeChange(pageSize) {
+      this.queryInfo.pageSize = pageSize;
+      this.getMachineList();
+    },
+    //监听页码值改变的事件
+    handleCurrentChange(curPage) {
+      this.queryInfo.curPage = curPage;
+      this.getMachineList();
+    }
+  }
+};
+</script>
 
+<style lang="less" scoped>
+</style>
