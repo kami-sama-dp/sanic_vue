@@ -107,22 +107,29 @@ class test_task_action(MethodView):
             slaves_core_size = 0
             slaves_name = ''
             with db.atomic():
-                for slave_id in slaves:
-                    machine = Machine.filter_by_id(id=slave_id)
-                    slaves_core_size += machine.coresize
-                    slaves_name += machine.ip + ','
-                master_ip = Machine.filter_by_id(id=master).ip
-                TestTask.create(taskname=taskname, user=username, master=master_ip, gameserver=gameserver, slaves=slaves,
-                                autostop=autostop, runtime=runtime, testhost=testhost, usersize=usersize,
-                                userspeed=userspeed, indextimes=indextimes, desc=desc, slaves_name=slaves_name[:-1],
-                                slaves_core_size=slaves_core_size)
-                return 'true'
+                # 先判重
+                test_task = TestTask.select().where(TestTask.taskname == taskname).first()
+                if test_task is None:
+                    for slave_id in slaves:
+                        machine = Machine.filter_by_id(id=slave_id)
+                        slaves_core_size += machine.coresize
+                        slaves_name += machine.ip + ','
+                    TestTask.create(taskname=taskname, user=username, master=master, gameserver=gameserver,
+                                    slaves=slaves, autostop=autostop, runtime=runtime, testhost=testhost,
+                                    usersize=usersize, userspeed=userspeed, indextimes=indextimes, desc=desc,
+                                    slaves_name=slaves_name[:-1], slaves_core_size=slaves_core_size)
+                    return 'true'
+                else:
+                    return jsonify({'msg': '任务名称已存在', 'code': 0})
         except Exception as e:
             return jsonify({'msg': e})
 
     @auth.login_required
     def put(self):
         try:
+            data = request.get_data()
+            json_data = json.loads(data.decode('utf-8'))
+            print(json_data)
             return 'put'
         except Exception as e:
             return jsonify({'msg': e})
@@ -130,7 +137,10 @@ class test_task_action(MethodView):
     @auth.login_required
     def delete(self):
         try:
-            return 'delete'
+            data = request.get_json()
+            id = data['id']
+            TestTask.delete().where(TestTask.id == id).execute()
+            return 'true'
         except Exception as e:
             return jsonify({'msg': e})
 

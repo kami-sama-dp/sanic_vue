@@ -1,7 +1,7 @@
 <template>
   <div class="fillcontain">
     <HeaderTopMain></HeaderTopMain>
-    <el-card style="margin-top:18px;height:95%" >
+    <el-card style="margin-top:18px;height:95%">
       <el-row :gutter="10">
         <el-col :span="7">
           <el-input
@@ -58,15 +58,16 @@
         border
         stripe
         height="86%"
-        v-loading="loading">
-        <el-table-column label="#" width="80%" type='index' :index='indexMethod'></el-table-column>
+        v-loading="loading"
+      >
+        <el-table-column label="#" width="80%" type="index" :index="indexMethod"></el-table-column>
         <el-table-column label="服务器地址" prop="ip"></el-table-column>
         <el-table-column label="服务器端口" prop="port"></el-table-column>
         <el-table-column label="核心数量" prop="coresize"></el-table-column>
         <el-table-column label="控制器" prop="mtype" width="90%">
-           <template v-slot='scope'>
-           <el-tag :type= "scope.row.mtype =='是'?'':'danger'" >{{scope.row.mtype}}</el-tag>
-         </template>
+          <template v-slot="scope">
+            <el-tag :type="scope.row.mtype =='是'?'':'danger'">{{scope.row.mtype}}</el-tag>
+          </template>
         </el-table-column>
         <el-table-column label="备注" prop="desc"></el-table-column>
         <el-table-column label="操作">
@@ -94,7 +95,8 @@
         :page-sizes="[10, 20, 30, 50]"
         :page-size="queryInfo.pageSize"
         layout="total, sizes, prev, pager, next, jumper"
-        :total="total" style="margin-top:10px"
+        :total="total"
+        style="margin-top:10px"
       ></el-pagination>
     </el-card>
   </div>
@@ -168,8 +170,8 @@ export default {
   },
   methods: {
     // 翻页，连续index索引
-    indexMethod(index){
-      return (index+1) +(this.queryInfo.curPage-1) *this.queryInfo.pageSize
+    indexMethod(index) {
+      return index + 1 + (this.queryInfo.curPage - 1) * this.queryInfo.pageSize;
     },
     async search_ip_data() {
       //搜索框查询, 后期可优化成实时搜索
@@ -178,7 +180,7 @@ export default {
       await this.getMachineList();
     },
     closeDialog(refName) {
-       this.form = {
+      this.form = {
         id: 0,
         ip: "",
         port: "22",
@@ -186,7 +188,7 @@ export default {
         mtype: false,
         desc: ""
       };
-      
+
       this.$refs[refName].resetFields();
 
       this.dialogFormVisible = false;
@@ -213,8 +215,6 @@ export default {
           params: this.queryInfo
         });
         if (res.status == 200) {
-          this.$store.commit('remove_master')
-          this.$store.commit('remove_slaves')
           this.total = res.data.total;
           this.serverMachine = [];
           res.data.result.forEach(item => {
@@ -226,36 +226,32 @@ export default {
               mtype: item.mtype == true ? "是" : "否",
               desc: item.desc
             };
-            if (table_item.mtype =='是')
-            {
-              this.$store.commit('set_master', 
-              {
+            if (table_item.mtype == "是") {
+              this.$store.commit("set_master", {
                 id: table_item.id,
                 ip: table_item.ip
-              })
-            }
-            else 
-            {
-              this.$store.commit('set_slaves', {
+              });
+            } else {
+              this.$store.commit("set_slaves", {
                 id: table_item.id,
                 ip: table_item.ip
-              })
+              });
             }
             this.serverMachine.push(table_item);
           });
           this.loading = false; //关闭加载动画特效
         } else {
-         return;
+          return;
         }
       } catch (err) {
-        this.$message.error("获取务器列表数据失败!");
+        this.$message.error("获取务器列表数据失败");
       }
     },
     //点击确定按钮,添加数据或修改数据
     async addMachine(refName) {
       this.$refs[refName].validate(async valid => {
         if (!valid) {
-          this.$message.error("格式有误!");
+          this.$message.error("格式有误");
           return;
         } else if (this.dialogTitle == "showeditDialog") {
           this.loading = true;
@@ -263,10 +259,10 @@ export default {
           this.dialogFormVisible = false;
           const res = await this.$axios.put("/api/machine/", formData);
           if (res.status == 200) {
-            this.$message.success("编辑成功!");
+            this.$message.success("编辑成功");
             this.getMachineList();
           } else {
-           return
+            return;
           }
         } else if (this.dialogTitle == "showaddDialog") {
           this.loading = true;
@@ -274,7 +270,7 @@ export default {
           this.dialogFormVisible = false;
           const res = await this.$axios.post("/api/machine/", formData);
           if (res.status == 200) {
-            this.$message.success("添加成功!");
+            this.$message.success("添加成功");
             //  this.reload(); // 刷新页面,此时会回到第一页（实际）， 而不是在当前页面刷新（预期）， 此问题未解决
             this.getMachineList(); //  刷新页面的另一种处理方式
             // this.loading = false; //关闭加载动画特效
@@ -298,13 +294,14 @@ export default {
           data: param
         });
         if (_delete.status == 200) {
-          this.$message.success("删除成功!");
+          this.$message.success("删除成功");
           this.getMachineList();
         } else {
+          this.$message.error("删除失败");
           return;
         }
       } else if (res == "cancel") {
-        return this.$message.info("已取消删除!");
+        return this.$message.info("已取消删除");
       }
     },
     // 取消按钮, 清空表单数据

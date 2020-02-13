@@ -32,7 +32,7 @@
               v-for="(item,index) in master"
               :key="index"
               :label="item.ip"
-              :value="item.id"
+              :value="item.ip"
             ></el-option>
           </el-select>
         </el-form-item>
@@ -102,7 +102,7 @@ export default {
       master: master_obj,
       slaves: slaves_obj,
       form: {
-        username: localStorage.getItem("username"),
+        username: localStorage.getItem("username") , 
         taskname: "",
         master: "",
         slaves: [slaves_obj[0].id],
@@ -142,6 +142,7 @@ export default {
 
   methods: {
     onSubmit(refName) {
+      console.log(this.form)
       this.$refs[refName].validate(async valid => {
         if (!valid) {
           this.$message.error("格式有误!");

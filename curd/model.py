@@ -110,7 +110,7 @@ class User(BaseModel):
         return custom_app_context.verify(password, self.password)
 
     def generate_auth_token(self, expiration=7200):
-        s = Serializer(app.config['SECRET_KEY'], expires_in = expiration)
+        s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'name': str(User.user_name)})
 
     # 解析token，确认登录的用户身份
