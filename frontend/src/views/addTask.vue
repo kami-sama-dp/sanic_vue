@@ -98,6 +98,8 @@ export default {
   data() {
     let master_obj = JSON.parse(localStorage.getItem("master"));
     let slaves_obj = JSON.parse(localStorage.getItem("slaves"));
+    console.log(master_obj)
+    console.log(slaves_obj)
     return {
       master: master_obj,
       slaves: slaves_obj,

@@ -215,6 +215,8 @@ export default {
           params: this.queryInfo
         });
         if (res.status == 200) {
+          // this.$store.commit("remove_master")
+          // this.$store.commit("remove_slaves")
           this.total = res.data.total;
           this.serverMachine = [];
           res.data.result.forEach(item => {
@@ -254,6 +256,8 @@ export default {
           this.$message.error("格式有误");
           return;
         } else if (this.dialogTitle == "showeditDialog") {
+            this.$store.commit("remove_master")
+          this.$store.commit("remove_slaves")
           this.loading = true;
           let formData = JSON.stringify(this.form);
           this.dialogFormVisible = false;
@@ -289,6 +293,8 @@ export default {
         cancelButtonText: "取消"
       }).catch(err => err);
       if (res == "confirm") {
+          this.$store.commit("remove_master")
+          this.$store.commit("remove_slaves")
         let param = { id: row.id };
         const _delete = await this.$axios.delete("/api/machine/", {
           data: param
