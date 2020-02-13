@@ -96,18 +96,20 @@ export default {
     HeaderTopMain
   },
   data() {
-    let master_obj = JSON.parse(localStorage.getItem("master"));
-    let slaves_obj = JSON.parse(localStorage.getItem("slaves"));
-    console.log(master_obj)
-    console.log(slaves_obj)
+    let master_arr = JSON.parse(localStorage.getItem("master"));
+    let slaves_arr = JSON.parse(localStorage.getItem("slaves"));
+    let str = '[{"ip":"无","id":"0"}]';
+    let master_obj = master_arr != null ? master_arr : "1";
+    let slaves_obj = slaves_arr != null ? slaves_arr : JSON.parse(str);
+    console.log(slaves_obj);
     return {
       master: master_obj,
       slaves: slaves_obj,
       form: {
-        username: localStorage.getItem("username") , 
+        username: localStorage.getItem("username"),
         taskname: "",
         master: "",
-        slaves: [slaves_obj[0].id],
+        slaves: slaves_obj[0].id != 0 ? [slaves_obj[0].id] : [],
         gameserver: "未提供服务器配置信息",
         autostop: false,
         runtime: "",
@@ -144,7 +146,7 @@ export default {
 
   methods: {
     onSubmit(refName) {
-      console.log(this.form)
+      console.log(this.form);
       this.$refs[refName].validate(async valid => {
         if (!valid) {
           this.$message.error("格式有误!");
@@ -165,7 +167,7 @@ export default {
     },
     onCancel(refName) {
       this.$router.push("/testTask");
-    },
+    }
   }
 };
 </script>
