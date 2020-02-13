@@ -1,7 +1,6 @@
 from peewee import *
 from playhouse import pool
 from passlib.apps import custom_app_context
-from playhouse.fields import ManyToManyField
 
 from curd import app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired

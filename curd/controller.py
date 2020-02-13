@@ -1,4 +1,4 @@
-from flask import request, jsonify, g, make_response, abort, Response
+from flask import request, jsonify, g, make_response, abort
 from curd.model import Machine, db, User, TestTask
 from flask_restful import MethodView
 from playhouse.shortcuts import model_to_dict
