@@ -130,7 +130,31 @@ class test_task_action(MethodView):
             data = request.get_data()
             json_data = json.loads(data.decode('utf-8'))
             print(json_data)
-            return 'put'
+            username = json_data['username']
+            taskname = json_data['taskname']
+            master = json_data['master']
+            slaves = json_data['slaves']
+            gameserver = json_data['gameserver']
+            autostop = json_data['autostop']
+            runtime = json_data['runtime']
+            testhost = json_data['testhost']
+            usersize = json_data['usersize']
+            userspeed = json_data['userspeed']
+            indextimes = json_data['indextimes']
+            desc = json_data['desc']
+            slaves_core_size = 0
+            slaves_name = ''
+            with db.atomic():
+                for slave_id in slaves:
+                    machine = Machine.filter_by_id(id=slave_id)
+                    slaves_core_size += machine.coresize
+                    slaves_name += machine.ip + ','
+                TestTask.update(master=master, gameserver=gameserver,
+                                slaves=slaves, autostop=autostop, runtime=runtime, testhost=testhost,
+                                usersize=usersize, userspeed=userspeed, indextimes=indextimes, desc=desc,
+                                slaves_name=slaves_name[:-1], slaves_core_size=slaves_core_size).\
+                    where(TestTask.taskname == taskname).execute()
+                return 'true'
         except Exception as e:
             return jsonify({'msg': e})
 

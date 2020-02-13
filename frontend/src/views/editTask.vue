@@ -4,7 +4,8 @@
     <el-card>
       <el-form ref="form" :model="form" label-width="150px" :rules="testTaskRules">
         <el-form-item label="任务名称:" prop="taskname">
-          <el-input v-model="form.taskname" class="input_width"></el-input>
+          <!-- <el-input v-model="form.taskname" class="input_width"></el-input>  目前不允许修改任务名称-->
+          <span>{{form.taskname}}</span>
         </el-form-item>
         <el-form-item label="创建人:">
           <span>{{ form.username}}</span>
@@ -32,7 +33,7 @@
               v-for="(item,index) in master"
               :key="index"
               :label="item.ip"
-              :value="item.id"
+              :value="item.ip"
             ></el-option>
           </el-select>
         </el-form-item>
@@ -96,9 +97,14 @@ export default {
     HeaderTopMain
   },
   data() {
-    let master_obj = JSON.parse(localStorage.getItem("master"));
-    let slaves_obj = JSON.parse(localStorage.getItem("slaves"));
-    let data =  JSON.parse(window.decodeURIComponent(window.atob(this.$route.query.data))) //对url的参数解密
+    let master_arr = JSON.parse(localStorage.getItem("master"));
+    let slaves_arr = JSON.parse(localStorage.getItem("slaves"));
+    let str = '[{"ip":"无","id":"0"}]';
+    let master_obj = master_arr != null ? master_arr : "1";
+    let slaves_obj = slaves_arr != null ? slaves_arr : JSON.parse(str);
+    let data = JSON.parse(
+      window.decodeURIComponent(window.atob(this.$route.query.data))
+    ); //对url的参数解密
     return {
       master: master_obj,
       slaves: slaves_obj,
@@ -108,13 +114,13 @@ export default {
         master: data.master,
         slaves: JSON.parse(data.slaves),
         gameserver: "未提供服务器配置信息",
-        autostop: data.autostop == '是' ?true:false,
+        autostop: data.autostop == "是" ? true : false,
         runtime: data.runtime,
         testhost: data.testhost,
         usersize: data.usersize,
         userspeed: data.userspeed,
         indextimes: data.indextimes,
-        desc: data.desc,
+        desc: data.desc
       },
       testTaskRules: {
         taskname: [
@@ -143,19 +149,26 @@ export default {
 
   methods: {
     onSubmit(refName) {
-      
       this.$refs[refName].validate(async valid => {
         if (!valid) {
           this.$message.error("格式有误!");
           return;
         } else {
           console.log(this.form)
+          const res = await this.$axios.put("/api/test_task/", this.form);
+          console.log(res);
+          if (res.status == 200) {
+            this.$message.success("编辑成功");
+            this.$router.push("/testTask");
+          }else {
+            this.$message.error('编辑失败')
+          }
         }
       });
     },
     onCancel(refName) {
       this.$router.push("/testTask");
-    },
+    }
   }
 };
 </script>
