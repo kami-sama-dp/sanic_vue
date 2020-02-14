@@ -58,7 +58,7 @@
         <el-table-column label="并发用户数" prop="usersize" width="90%"></el-table-column>
         <el-table-column label="每秒启动用户数" prop="userspeed" width="110%"></el-table-column>
         <el-table-column label="备注" prop="desc"></el-table-column>
-        <el-table-column label="操作" width="130%">
+        <el-table-column label="操作" width="190%">
           <template v-slot="scope">
             <el-button type="primary" icon="el-icon-edit" size="mini" @click="editTask(scope.row)"></el-button>
             <el-button
@@ -67,6 +67,7 @@
               size="mini"
               @click="removeTaskById(scope.row.id)"
             ></el-button>
+            <el-button type="primary" icon="el-icon-caret-right" size="mini" @click="runTask(scope.row)"></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -194,6 +195,21 @@ export default {
       } else if (res == "cancel") {
         return this.$message.info("已取消删除");
       }
+    },
+    //执行任务
+    async runTask(row){
+      try{
+        let data = {
+          user_name:row.user,
+          slaves_name: row.slaves_name,
+          master: row.master,
+          task_name: row.task_name
+        }
+        const res = await this.$axios.post('/api/runTask/', data)
+      }catch{
+        this.$message.error('执行任务出错')
+      }
+      
     }
   }
 };

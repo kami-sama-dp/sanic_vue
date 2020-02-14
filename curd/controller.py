@@ -2,10 +2,14 @@ from flask import request, jsonify, g, make_response, abort
 from curd.model import Machine, db, User, TestTask
 from flask_restful import MethodView
 from playhouse.shortcuts import model_to_dict
-from . import auth
+from fabric.api import settings, run, cd, put
+from . import auth, BASE_DIR
 import json
 import os
 
+
+
+zip_name = 'run.zip'
 
 class all_machine(MethodView):
     # 获取服务器列表接口
@@ -209,4 +213,31 @@ def verify_password(username_or_token, client_password):
             abort(401)
     g.user = user
     return True
+
+
+class run_task(MethodView):
+    # 执行任务前先把zip包传到相应的slaves和master上, 并解压
+    @auth.login_required
+    def post(self):
+        try:
+            data = request.get_data()
+            json_data = json.loads(data)
+            print(json_data)
+            master = json_data['master']
+            file_name = json_data['task_name'] + zip_name
+            fab_unzip(filename=file_name, host_string=master, user='root')
+            return 'true'
+        except Exception as e:
+            return jsonify({'msg': e})
+
+
+# 上传文件至远程服务器
+def fab_unzip(filename, host_string, user):
+    with settings(host_string=host_string, user=user):
+        put(local_path=BASE_DIR + '/files/' + filename, remote_path='/home/dengpu/locustfile/')
+        with cd('/home/dengpu/locustfile/'):
+            run('unzip' + filename)
+            run('rm -rf' + filename)
+
+
 
