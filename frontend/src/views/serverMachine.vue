@@ -218,6 +218,11 @@ export default {
           // this.$store.commit("remove_master")
           // this.$store.commit("remove_slaves")
           this.total = res.data.total;
+          // 直接清库导致本地存储数据还在, 此时清空一下,保持数据一致性
+          if(this.total==0) {
+            this.$store.commit('remove_master')
+            this.$store.commit('remove_slaves') 
+          }
           this.serverMachine = [];
           res.data.result.forEach(item => {
             const table_item = {

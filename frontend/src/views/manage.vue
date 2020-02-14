@@ -4,7 +4,7 @@
       <el-aside width="200px">
         <el-aside width="200px">
           <el-menu
-            background-color="#333744"
+            background-color="#001529"
             text-color="#fff"
             active-text-color="#409BFF"
             :unique-opened="true"
@@ -91,7 +91,7 @@ export default {
 
 <style lang="less" scoped>
 .el-aside {
-  background-color: #333744;
+  background-color: #001529;
   .el-menu {
     border-right: none;
   }
