@@ -9,17 +9,12 @@
         <el-form-item label="创建人:">
           <span>{{ form.username}}</span>
         </el-form-item>
-        <el-form-item label="上传文件:" prop>
+        <el-form-item label="上传文件:">
           <el-upload
             class="upload-demo"
-            :action='UplaodUrl'
-            :on-preview="handlePreview"
-            :on-remove="handleRemove"
-            :before-remove="beforeRemove"
-            multiple
-            :limit="3"
-            :on-exceed="handleExceed"
-            :file-list="fileList"
+            :action="UplaodUrl"
+            :limit="1"
+            :before-upload="beforeUpload"
           >
             <el-button size="small" type="primary">点击上传</el-button>
             <span slot="tip" class="el-upload__tip" style="margin-left:12px">只能上传zip包</span>
@@ -102,8 +97,10 @@ export default {
     let master_obj = master_arr != null ? master_arr : "1";
     let slaves_obj = slaves_arr != null ? slaves_arr : JSON.parse(str);
     return {
+      UplaodUrl: "/api/test_task/", //上传的地址, 会自动上传(该项目已被禁用,目前会和表单一起提交)
       master: master_obj,
       slaves: slaves_obj,
+      fd: new FormData(),
       form: {
         username: localStorage.getItem("username"),
         taskname: "",
@@ -150,9 +147,12 @@ export default {
           this.$message.error("格式有误!");
           return;
         } else {
+          this.fd.append('data', JSON.stringify(this.form))
+          console.log(this.fd.get('data'))
+          console.log(this.fd.get('file'))
           const res = await this.$axios.post(
             "/api/test_task/",
-            JSON.stringify(this.form)
+            this.fd
           );
           if (res.data.code == 0) {
             this.$message.error(res.data.msg);
@@ -165,6 +165,10 @@ export default {
     },
     onCancel(refName) {
       this.$router.push("/testTask");
+    },
+    beforeUpload(file) {
+      this.fd.append("file", file)
+      return false; //阻止自动上传
     }
   }
 };

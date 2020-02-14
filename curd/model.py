@@ -65,7 +65,6 @@ class Machine(BaseModel):
 class TestTask(BaseModel):
     taskname = CharField(verbose_name="任务名称", default="", max_length=100, unique=True)
     user = CharField(verbose_name="创建人")
-    #testfile = FileField(verbose_name="上传任务文件", upload_to=user_directory_path)
     master = CharField(verbose_name="控制器", default='')
     slaves = CharField(default='')
     gameserver = TextField(verbose_name='被测服务器配置信息', default="未提供服务器配置信息")

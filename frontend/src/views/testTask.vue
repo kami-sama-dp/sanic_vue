@@ -160,12 +160,12 @@ export default {
     // 监听pageSize改变的事件
     handleSizeChange(pageSize) {
       this.queryInfo.pageSize = pageSize;
-      this.getMachineList();
+      this.getTaskList();
     },
     //监听页码值改变的事件
     handleCurrentChange(curPage) {
       this.queryInfo.curPage = curPage;
-      this.getMachineList();
+      this.getTaskList();
     },
     editTask(row) {
       this.reload(); //刷新页面

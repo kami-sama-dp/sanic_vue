@@ -4,6 +4,7 @@ from flask_restful import MethodView
 from playhouse.shortcuts import model_to_dict
 from . import auth
 import json
+import os
 
 
 class all_machine(MethodView):
@@ -89,9 +90,9 @@ class test_task_action(MethodView):
     @auth.login_required
     def post(self):
         try:
-            data = request.get_data()
-            json_data = json.loads(data.decode('utf-8'))
-            print(json_data)
+            file = request.files.get('file')
+            data = request.form.get('data')
+            json_data = json.loads(data.encode('utf-8').decode('utf-8'))
             username = json_data['username']
             taskname = json_data['taskname']
             master = json_data['master']
@@ -106,6 +107,12 @@ class test_task_action(MethodView):
             desc = json_data['desc']
             slaves_core_size = 0
             slaves_name = ''
+            target = os.path.join(os.getcwd(), 'files')
+            if not os.path.isdir(target):
+                os.mkdir(target)
+            destination = '/'.join([target, taskname + '_' + file.filename])
+            print(destination)
+            file.save(destination)
             with db.atomic():
                 # 先判重
                 test_task = TestTask.select().where(TestTask.taskname == taskname).first()
@@ -129,7 +136,6 @@ class test_task_action(MethodView):
         try:
             data = request.get_data()
             json_data = json.loads(data.decode('utf-8'))
-            print(json_data)
             username = json_data['username']
             taskname = json_data['taskname']
             master = json_data['master']
@@ -167,14 +173,6 @@ class test_task_action(MethodView):
             return 'true'
         except Exception as e:
             return jsonify({'msg': e})
-
-
-
-
-
-
-
-
 
 
 # 登录接口, 查不到则直接注册
