@@ -33,6 +33,9 @@
           <el-form-item label="服务器地址:" :label-width="formLabelWidth" prop="ip">
             <el-input v-model="form.ip" class="input_width" prop></el-input>
           </el-form-item>
+          <el-form-item label="内网地址:" :label-width="formLabelWidth" prop="local_ip">
+            <el-input v-model="form.local_ip" class="input_width" prop></el-input>
+          </el-form-item>
           <el-form-item label="服务器端口:" :label-width="formLabelWidth" prop="port">
             <el-input v-model="form.port" class="input_width"></el-input>
           </el-form-item>
@@ -62,6 +65,7 @@
       >
         <el-table-column label="#" width="80%" type="index" :index="indexMethod"></el-table-column>
         <el-table-column label="服务器地址" prop="ip"></el-table-column>
+        <!-- <el-table-column label="内网地址" prop="local_ip"></el-table-column> -->
         <el-table-column label="服务器端口" prop="port"></el-table-column>
         <el-table-column label="核心数量" prop="coresize"></el-table-column>
         <el-table-column label="控制器" prop="mtype" width="90%">
@@ -139,6 +143,7 @@ export default {
       form: {
         id: 0,
         ip: "",
+        local_ip: "",
         port: "22",
         coresize: "",
         mtype: false,
@@ -154,6 +159,10 @@ export default {
       total: 0,
       addMachineRules: {
         ip: [
+          { required: true, message: "请输入地址", trigger: "blur" },
+          { validator: checkIp }
+        ],
+        local_ip: [
           { required: true, message: "请输入地址", trigger: "blur" },
           { validator: checkIp }
         ],
@@ -183,6 +192,7 @@ export default {
       this.form = {
         id: 0,
         ip: "",
+        local_ip: "",
         port: "22",
         coresize: "",
         mtype: false,
@@ -201,6 +211,7 @@ export default {
     async editShowDialog(row) {
       this.dialogTitle = "showeditDialog";
       this.form.id = row.id;
+      this.form.local_ip = row.local_ip;
       this.form.ip = row.ip;
       this.form.port = row.port;
       this.form.coresize = row.coresize;
@@ -219,15 +230,16 @@ export default {
           // this.$store.commit("remove_slaves")
           this.total = res.data.total;
           // 直接清库导致本地存储数据还在, 此时清空一下,保持数据一致性
-          if(this.total==0) {
-            this.$store.commit('remove_master')
-            this.$store.commit('remove_slaves') 
+          if (this.total == 0) {
+            this.$store.commit("remove_master");
+            this.$store.commit("remove_slaves");
           }
           this.serverMachine = [];
           res.data.result.forEach(item => {
             const table_item = {
               id: item.id,
               ip: item.ip,
+              local_ip: item.local_ip,
               port: item.port,
               coresize: item.coresize,
               mtype: item.mtype == true ? "是" : "否",
@@ -237,6 +249,7 @@ export default {
               this.$store.commit("set_master", {
                 id: table_item.id,
                 ip: table_item.ip
+                //   local_ip: item.local_ip
               });
             } else {
               this.$store.commit("set_slaves", {
@@ -261,8 +274,8 @@ export default {
           this.$message.error("格式有误");
           return;
         } else if (this.dialogTitle == "showeditDialog") {
-            this.$store.commit("remove_master")
-          this.$store.commit("remove_slaves")
+          this.$store.commit("remove_master");
+          this.$store.commit("remove_slaves");
           this.loading = true;
           let formData = JSON.stringify(this.form);
           this.dialogFormVisible = false;
@@ -298,8 +311,8 @@ export default {
         cancelButtonText: "取消"
       }).catch(err => err);
       if (res == "confirm") {
-          this.$store.commit("remove_master")
-          this.$store.commit("remove_slaves")
+        this.$store.commit("remove_master");
+        this.$store.commit("remove_slaves");
         let param = { id: row.id };
         const _delete = await this.$axios.delete("/api/machine/", {
           data: param
@@ -320,6 +333,7 @@ export default {
       this.form = {
         id: 0,
         ip: "",
+        local_ip: "",
         port: "22",
         coresize: "",
         mtype: false,

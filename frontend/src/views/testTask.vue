@@ -54,7 +54,15 @@
             >{{value}}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="客户端核心总数" prop="slaves_core_size" width="105%"></el-table-column>
+        <el-table-column label="客户端核心总数" prop="slaves_core_size" width="105%">
+          <template v-slot="scope">
+            <el-tag
+              v-for="(value, index) in scope.row.slaves_core_size"
+              :key="index"
+              style="margin-left: 5px;"
+            >{{value}}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="并发用户数" prop="usersize" width="90%"></el-table-column>
         <el-table-column label="每秒启动用户数" prop="userspeed" width="110%"></el-table-column>
         <el-table-column label="备注" prop="desc"></el-table-column>
@@ -145,7 +153,9 @@ export default {
               slaves: item.slaves,
               slaves_name: item.slaves_name.split(","),
               master: item.master,
-              slaves_core_size: item.slaves_core_size,
+              master_local_ip :item.master_local_ip,
+              slave_local_ip :item.slave_local_ip,
+              slaves_core_size: item.slaves_core_size.split(','),
               usersize: item.usersize,
               userspeed: item.userspeed,
               indextimes: item.indextimes,
@@ -198,14 +208,19 @@ export default {
     },
     //执行任务
     async runTask(row){
+      console.log(row)
       try{
-        let data = {
-          user_name:row.user,
-          slaves_name: row.slaves_name,
-          master: row.master,
-          task_name: row.task_name
-        }
-        const res = await this.$axios.post('/api/runTask/', data)
+        // let data = {
+        //   user_name:row.user,
+        //   slaves_name: row.slaves_name,
+        //   master: row.master,
+        //   task_name: row.task_name,
+        //   master_local_ip: item.master_local_ip,
+        //   slave_local_ip: item.slave_local_ip,
+        //   slaves_core_size: item.slaves_core_size
+        // }
+        const res = await this.$axios.post('/api/runTask/', row)
+        console.log(res)
       }catch{
         this.$message.error('执行任务出错')
       }

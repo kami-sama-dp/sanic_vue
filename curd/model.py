@@ -8,7 +8,6 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSigna
 
 db = pool.PooledMySQLDatabase(host='127.0.0.1', port=3306, user='root', database='test')
 
-
 @app.before_request
 def conn():
     print('connect Database')
@@ -54,6 +53,7 @@ class Machine(BaseModel):
     ip = CharField()
     port = IntegerField()
     user = CharField(default='')
+    local_ip = CharField()
     coresize = IntegerField()
     mtype = BooleanField(default=False)
     desc = TextField(default='')
@@ -66,13 +66,15 @@ class TestTask(BaseModel):
     taskname = CharField(verbose_name="任务名称", default="", max_length=100, unique=True)
     user = CharField(verbose_name="创建人")
     master = CharField(verbose_name="控制器", default='')
+    master_local_ip = CharField(verbose_name='阿里云master内网ip', default='')
+    slave_local_ip = CharField(verbose_name='阿里云slave内网ip', default='')
     slaves = CharField(default='')
     gameserver = TextField(verbose_name='被测服务器配置信息', default="未提供服务器配置信息")
     autostop = BooleanField(verbose_name="自动停止", default=False, help_text="脚本必须支持自动停止功能，此优先级高于运行时长")
     runtime = CharField(verbose_name="运行时长", default="", max_length=30, help_text="例子(300s, 20m, 3h, 1h30m)", null=True)
     testhost = CharField(verbose_name="目标主机", max_length=200, null=True)
     slaves_name = CharField(default='')
-    slaves_core_size = IntegerField(default=0)
+    slaves_core_size = CharField(default=0)
 
     # def clientsize(self):
     #     result = 0

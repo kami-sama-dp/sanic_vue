@@ -6,10 +6,10 @@ from fabric.api import settings, run, cd, put
 from . import auth, BASE_DIR
 import json
 import os
-
-
+import time
 
 zip_name = 'run.zip'
+
 
 class all_machine(MethodView):
     # 获取服务器列表接口
@@ -36,11 +36,12 @@ class all_machine(MethodView):
             json_data = json.loads(data.decode('utf-8'))
             with db.atomic():
                 ip = json_data['ip']
+                local_ip = json_data['local_ip']
                 port = json_data['port']
                 coresize = json_data['coresize']
                 mtype = json_data['mtype']
                 desc = json_data['desc']
-                Machine.create(ip=ip, port=port, coresize=coresize, mtype=mtype, desc=desc)
+                Machine.create(ip=ip, port=port, coresize=coresize, mtype=mtype, desc=desc, local_ip=local_ip)
             return 'true'
         except Exception as e:
             return jsonify({'msg': e})
@@ -52,12 +53,14 @@ class all_machine(MethodView):
             data = request.get_data()
             json_data = json.loads(data.decode('utf-8'))
             id = json_data['id']
+            local_ip = json_data['local_ip']
             ip = json_data['ip']
             port = json_data['port']
             coresize = json_data['coresize']
             mtype = json_data['mtype']
             desc = json_data['desc']
-            Machine.update(ip=ip, port=port, coresize=coresize, mtype=mtype, desc=desc).where(Machine.id == id).execute()
+            Machine.update(ip=ip, port=port, coresize=coresize, mtype=mtype, desc=desc, local_ip=local_ip)\
+                .where(Machine.id == id).execute()
             return 'true'
         except Exception as e:
             return jsonify({'msg': e})
@@ -109,27 +112,31 @@ class test_task_action(MethodView):
             userspeed = json_data['userspeed']
             indextimes = json_data['indextimes']
             desc = json_data['desc']
-            slaves_core_size = 0
+            slaves_core_size = ''
             slaves_name = ''
+            slave_local_ip = ''
             target = os.path.join(os.getcwd(), 'files')
             if not os.path.isdir(target):
                 os.mkdir(target)
-            destination = '/'.join([target, taskname + '_' + file.filename])
-            print(destination)
-            file.save(destination)
+            if file is not None:
+                destination = '/'.join([target, taskname + '_' + file.filename])
+                file.save(destination)
             with db.atomic():
                 # 先判重
                 test_task = TestTask.select().where(TestTask.taskname == taskname).first()
+                master_local_ip = Machine.select().where(Machine.ip == master).first().local_ip
                 if test_task is None:
                     for slave_id in slaves:
                         machine = Machine.filter_by_id(id=slave_id)
-                        slaves_core_size += machine.coresize
+                        slaves_core_size += str(machine.coresize) + ','
                         slaves_name += machine.ip + ','
+                        slave_local_ip += machine.local_ip + ','
                     TestTask.create(taskname=taskname, user=username, master=master, gameserver=gameserver,
                                     slaves=slaves, autostop=autostop, runtime=runtime, testhost=testhost,
                                     usersize=usersize, userspeed=userspeed, indextimes=indextimes, desc=desc,
-                                    slaves_name=slaves_name[:-1], slaves_core_size=slaves_core_size)
-                    return 'true'
+                                    slaves_name=slaves_name[:-1], slaves_core_size=slaves_core_size[:-1],
+                                    master_local_ip=master_local_ip, slave_local_ip=slave_local_ip[:-1])
+                    return "true"
                 else:
                     return jsonify({'msg': '任务名称已存在', 'code': 0})
         except Exception as e:
@@ -152,19 +159,21 @@ class test_task_action(MethodView):
             userspeed = json_data['userspeed']
             indextimes = json_data['indextimes']
             desc = json_data['desc']
-            slaves_core_size = 0
+            slaves_core_size = ''
             slaves_name = ''
+            slave_local_ip = ''
             with db.atomic():
+                master_local_ip = Machine.select().where(Machine.ip == master).first().local_ip
                 for slave_id in slaves:
                     machine = Machine.filter_by_id(id=slave_id)
-                    slaves_core_size += machine.coresize
+                    slaves_core_size += str(machine.coresize) + ','
                     slaves_name += machine.ip + ','
                 TestTask.update(master=master, gameserver=gameserver,
                                 slaves=slaves, autostop=autostop, runtime=runtime, testhost=testhost,
                                 usersize=usersize, userspeed=userspeed, indextimes=indextimes, desc=desc,
-                                slaves_name=slaves_name[:-1], slaves_core_size=slaves_core_size).\
+                                slaves_name=slaves_name[:-1], slaves_core_size=slaves_core_size[:-1]).\
                     where(TestTask.taskname == taskname).execute()
-                return 'true'
+                return "true"
         except Exception as e:
             return jsonify({'msg': e})
 
@@ -185,9 +194,7 @@ class admin_register(MethodView):
     def post(self):
         try:
             if hasattr(g, 'user'):
-                print("密码验证通过--------")
                 token = g.user.generate_auth_token()
-                print('token:   ', token)
                 return jsonify({'token': token.decode('ascii')})
             else:
                 return make_response(jsonify({'error': '密码错误!'}), 401)
@@ -222,22 +229,84 @@ class run_task(MethodView):
         try:
             data = request.get_data()
             json_data = json.loads(data)
+            task_name = json_data['task_name']
+            master_ip = json_data['master']
+            slaves = json_data['slaves_name']
+            file_name = json_data['task_name'] + '_' + zip_name
+            master_local_ip = json_data['master_local_ip']
+            usersize = json_data['usersize']
+            userspeed = json_data['userspeed']
+            autostop = json_data['autostop']
+            runtime = json_data['runtime']
+            slaves_core_size = json_data['slaves_core_size']
+            testhost = json_data['testhost']
             print(json_data)
-            master = json_data['master']
-            file_name = json_data['task_name'] + zip_name
-            fab_unzip(filename=file_name, host_string=master, user='root')
-            return 'true'
+            # 任务设置了目标主机时，使用新的目标主机进行测试
+            if testhost != "" and testhost is not None:
+                adhost = " -H " + testhost
+            else:
+                adhost = ""
+            # 如果设置了自动停止，不加入 -t参数，
+            if autostop == '是':
+                runtimestring = ""
+            else:
+                if runtime != "" and runtime is not None:
+                    runtimestring = " -t " + runtime + " "
+                else:
+                    # runtime 为空时添加默认300s
+                    runtimestring = " -t 300s "
+            # 上传文件到slaves
+            for slave_ip in slaves:
+                clean(task_name=task_name, host_string=slave_ip, user="root")
+                fab_unzip(task_name=task_name, filename=file_name, host_string=slave_ip, user='root')
+
+            # 上传文件到master上
+            clean(task_name=task_name, host_string=master_ip, user='root')
+            fab_unzip(task_name=task_name, filename=file_name, host_string=master_ip, user='root')
+
+            master_command = "locust --master --no-web  --no-reset-stats --expect-slaves  " + str(slaves_core_size) + \
+                             "--logfile /home/dengpu/locustlogs/locust.log --only-summary --master-bind-host" + \
+                             str(master_local_ip) + " --master-bind-port 6607 --csv /home/dengpu/locustresult/" +\
+                             task_name + " -c " + \
+                             str(usersize) + " -r " + str(userspeed) + runtimestring +\
+                             " -f /home/dengpu/locustfiles/" + file_name[-7:-4] +\
+                             ".py >& /dev/null < /dev/null"
+            for i in range(slaves_core_size):
+                # 客户端服务器启动时放入后台执行，因为控制器服务器结束时，客户端会自动结束
+                slavecommand = "nohup locust --slave " + adhost \
+                               + " --no-reset-stats --logfile /home/dengpu/locustlogs/locust" \
+                               + str(i) + ".log --master-host  " + str(master_local_ip) \
+                               + " --master-port 6607 -f /home/dengpu/locustfiles/" \
+                               + file_name[-7:-4] + ".py >& /dev/null < /dev/null &"
+                fabrun(slavecommand, chost_string, cuser, cpassword)
+            return "true"
         except Exception as e:
             return jsonify({'msg': e})
 
 
 # 上传文件至远程服务器
-def fab_unzip(filename, host_string, user):
+# 需要加锁、 防止2个用户上传同一个任务
+def fab_unzip(task_name, filename, host_string, user):
     with settings(host_string=host_string, user=user):
-        put(local_path=BASE_DIR + '/files/' + filename, remote_path='/home/dengpu/locustfile/')
-        with cd('/home/dengpu/locustfile/'):
-            run('unzip' + filename)
-            run('rm -rf' + filename)
+        run('mkdir -p  /home/dengpu/locustfile/' + task_name)
+        run('mkdir -p  /home/dengpu/locustlogs/' + task_name)
+        run('mkdir -p  /home/dengpu/locustresult/' + task_name)
+        put(local_path=BASE_DIR + '/files/' + filename, remote_path='/home/dengpu/locustfile/' + task_name + '/')
+        with cd('/home/dengpu/locustfile/' + task_name):
+            run('unzip ' + filename)
+            run('rm -rf ' + filename)
 
 
+#  删除对应测试任务的文件夹
+def clean(task_name, host_string, user):
+    with settings(host_string=host_string, user=user):
+        run("rm -rf  /home/dengpu/locustfile/" + task_name)
+        run("rm -rf  /home/dengpu/locustlogs/" + task_name)
+        run("rm -rf  /home/dengpu/locustresult/" + task_name)
+
+
+def fabrun(command, host_string, user):
+    with settings(host_string=host_string, user=user):
+        # 设置pty=False，避免因为Fabric退出导致进程的退出
+        run(command, quiet=True, pty=False)
 

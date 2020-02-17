@@ -7,7 +7,7 @@ const state = {
    token: '',
    user: '',
    master: [],
-   slaves: [],
+   slaves: []
 }
 
 const mutations = {

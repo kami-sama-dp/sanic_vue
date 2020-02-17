@@ -6,7 +6,7 @@ import iView from 'iview'
 import "iview/dist/styles/iview.css"
 
 // axios 配置
-axios.defaults.timeout = 6000
+// axios.defaults.timeout = 6000
 axios.defaults.auth = {
     username: '',
     password: '',
@@ -28,7 +28,6 @@ axios.interceptors.response.use(response =>{
     return response
 },err=>{
     iView.LoadingBar.error();
-    console.log(err.response) ;
     if (err.response){
         switch(err.response.status){
             case 403:
@@ -58,7 +57,7 @@ axios.interceptors.response.use(response =>{
             return err;
         }
     }
-    return Promise.reject(err.response).catch(err=>{return err})
+    return Promise.reject(err).catch(err=>{return err})
 })
 
 export default axios
