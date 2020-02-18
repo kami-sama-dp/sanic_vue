@@ -233,7 +233,7 @@ def verify_password(username_or_token, client_password):
 class run_task(MethodView):
     # 执行任务前先把zip包传到相应的slaves和master上, 并解压
     @auth.login_required
-    async def post(self):
+    def post(self):
         try:
             data = request.get_data()
             json_data = json.loads(data)
