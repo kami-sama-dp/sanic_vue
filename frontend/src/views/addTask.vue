@@ -98,7 +98,6 @@ export default {
     let master_obj = master_arr != null ? master_arr : "1";
     let slaves_obj = slaves_arr != null ? slaves_arr : JSON.parse(str);
     return {
-      fileList: [{name: 'food.jpeg'}],
       UplaodUrl: "/api/test_task/", //上传的地址, 会自动上传(该项目已被禁用,目前会和表单一起提交)
       master: master_obj,
       slaves: slaves_obj,

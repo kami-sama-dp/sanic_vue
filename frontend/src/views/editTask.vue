@@ -13,14 +13,10 @@
         <el-form-item label="上传文件:" prop>
           <el-upload
             class="upload-demo"
-            action="https://jsonplaceholder.typicode.com/posts/"
-            :on-preview="handlePreview"
-            :on-remove="handleRemove"
-            :before-remove="beforeRemove"
-            multiple
-            :limit="3"
-            :on-exceed="handleExceed"
-            :file-list="fileList"
+            :action="UplaodUrl"
+            :limit="1"
+            :on-change="onChangeFile"
+            :auto-upload="false"
           >
             <el-button size="small" type="primary">点击上传</el-button>
             <span slot="tip" class="el-upload__tip" style="margin-left:12px">只能上传zip包</span>
@@ -106,7 +102,9 @@ export default {
       window.decodeURIComponent(window.atob(this.$route.query.data))
     ); //对url的参数解密
     return {
+      UplaodUrl: "/api/test_task/", //上传的地址, 会自动上传(该项目已被禁用,目前会和表单一起提交)
       master: master_obj,
+      fd: new FormData(),
       slaves: slaves_obj,
       form: {
         username: data.user,
@@ -154,20 +152,22 @@ export default {
           this.$message.error("格式有误!");
           return;
         } else {
-          console.log(this.form)
-          const res = await this.$axios.put("/api/test_task/", this.form);
-          console.log(res);
+          this.fd.append("data", JSON.stringify(this.form));
+          const res = await this.$axios.put("/api/test_task/", this.fd);
           if (res.status == 200) {
             this.$message.success("编辑成功");
             this.$router.push("/testTask");
-          }else {
-            this.$message.error('编辑失败')
+          } else {
+            this.$message.error("编辑失败");
           }
         }
       });
     },
     onCancel(refName) {
       this.$router.push("/testTask");
+    },
+    onChangeFile(file) {
+      this.fd.append("file", file.raw);
     }
   }
 };

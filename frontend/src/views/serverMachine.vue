@@ -100,7 +100,7 @@
         :page-size="queryInfo.pageSize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="total"
-        style="margin-top:10px"
+        style="margin-top:15px"
       ></el-pagination>
     </el-card>
   </div>
