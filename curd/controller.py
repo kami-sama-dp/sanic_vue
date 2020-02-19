@@ -1,10 +1,10 @@
-from flask import request, jsonify, g, make_response, abort
+from flask import request, jsonify, g, make_response, abort, current_app
 from curd.model import Machine, db, User, TestTask
 from flask_restful import MethodView
 from playhouse.shortcuts import model_to_dict
 from fabric.api import settings, run, cd, put
+from . import auth, BASE_DIR, celery
 
-from . import auth, BASE_DIR
 import json
 import os
 
@@ -230,71 +230,14 @@ def verify_password(username_or_token, client_password):
     g.user = user
     return True
 
+
 class run_task(MethodView):
-    # 执行任务前先把zip包传到相应的slaves和master上, 并解压
     @auth.login_required
     def post(self):
-        try:
-            data = request.get_data()
-            json_data = json.loads(data)
-            task_name = json_data['task_name']
-            master_ip = json_data['master']
-            slaves_name = json_data['slaves_name']
-            file_name = json_data['task_name'] + '_' + zip_name
-            master_local_ip = json_data['master_local_ip']
-            usersize = json_data['usersize']
-            userspeed = json_data['userspeed']
-            autostop = json_data['autostop']
-            runtime = json_data['runtime']
-            slaves_core_size = json_data['slaves_core_size']
-            testhost = json_data['testhost']
-            slave_num = 0  # 用来计算一共slave有多少核心
-            print(json_data)
-            # 任务设置了目标主机时，使用新的目标主机进行测试
-            if testhost != "" and testhost is not None:
-                adhost = " -H " + testhost
-            else:
-                adhost = ""
-            # 如果设置了自动停止，不加入 -t参数，
-            if autostop == '是':
-                runtimestring = ""
-            else:
-                if runtime != "" and runtime is not None:
-                    runtimestring = " -t " + runtime + " "
-                else:
-                    # runtime 为空时添加默认300s
-                    runtimestring = " -t 300s "
-            # 上传文件到slaves
-            for index, slave_ip in enumerate(slaves_name):
-                slave_num += int(slaves_core_size[index])
-                clean(task_name=task_name, host_string=slave_ip, user="root")
-                fab_unzip(task_name=task_name, filename=file_name, host_string=slave_ip, user='root')
-                for i in range(int(slaves_core_size[index])):
-                    # 客户端服务器启动时放入后台执行，因为控制器服务器结束时，客户端会自动结束
-                    slavecommand = "nohup locust --slave " + adhost \
-                                   + " --no-reset-stats --logfile /home/dengpu/locustlogs/locust" \
-                                   + str(i) + ".log --master-host  " + str(master_local_ip) \
-                                   + " --master-port 6607 -f /home/dengpu/locustfile/" + task_name + '/'\
-                                   + file_name[-7:-4] + ".py >& /dev/null < /dev/null &"
-               #     print(slavecommand)
-                    fabrun(slavecommand, slave_ip, user='root')
-
-            # 上传文件到master上
-            clean(task_name=task_name, host_string=master_ip, user='root')
-            fab_unzip(task_name=task_name, filename=file_name, host_string=master_ip, user='root')
-
-            master_command = "locust --master --no-web  --no-reset-stats --expect-slaves  " + str(slave_num) + \
-                             " --logfile /home/dengpu/locustlogs/locust.log --only-summary --master-bind-host " + \
-                             str(master_local_ip) + " --master-bind-port 6607 --csv /home/dengpu/locustresult/" +\
-                             task_name + '/' + " -c " + \
-                             str(usersize) + " -r " + str(userspeed) + runtimestring +\
-                             " -f /home/dengpu/locustfile/" + task_name + '/' + file_name[-7:-4] +\
-                             ".py >& /dev/null < /dev/null"
-            print(master_command)
-            fabrun(master_command, master_ip, user='root')
-            return "true"
-        except Exception as e:
-            return jsonify({'msg': e})
+        data = request.get_data()
+        json_data = json.loads(data)
+        progress_task.delay(json_data)
+        return 'true'
 
 
 # 上传文件至远程服务器
@@ -322,5 +265,69 @@ def fabrun(command, host_string, user):
     with settings(host_string=host_string, user=user):
         # 设置pty=False，避免因为Fabric退出导致进程的退出
         run(command, quiet=True, pty=False)
+
+
+# 接收前端data, 执行任务前先把zip包传到相应的slaves和master上, 并解压
+# 在linux上执行locust任务
+@celery.task()
+def progress_task(json_data):
+    try:
+        task_name = json_data['task_name']
+        master_ip = json_data['master']
+        slaves_name = json_data['slaves_name']
+        file_name = json_data['task_name'] + '_' + zip_name
+        master_local_ip = json_data['master_local_ip']
+        usersize = json_data['usersize']
+        userspeed = json_data['userspeed']
+        autostop = json_data['autostop']
+        runtime = json_data['runtime']
+        slaves_core_size = json_data['slaves_core_size']
+        testhost = json_data['testhost']
+        slave_num = 0  # 用来计算一共slave有多少核心
+        # 任务设置了目标主机时，使用新的目标主机进行测试
+        if testhost != "" and testhost is not None:
+            adhost = " -H " + testhost
+        else:
+            adhost = ""
+        # 如果设置了自动停止，不加入 -t参数，
+        if autostop == '是':
+            runtimestring = ""
+        else:
+            if runtime != "" and runtime is not None:
+                runtimestring = " -t " + runtime + " "
+            else:
+                # runtime 为空时添加默认300s
+                runtimestring = " -t 300s "
+        # 上传文件到slaves
+        for index, slave_ip in enumerate(slaves_name):
+            slave_num += int(slaves_core_size[index])
+            clean(task_name=task_name, host_string=slave_ip, user="root")
+            fab_unzip(task_name=task_name, filename=file_name, host_string=slave_ip, user='root')
+            for i in range(int(slaves_core_size[index])):
+                # 客户端服务器启动时放入后台执行，因为控制器服务器结束时，客户端会自动结束
+                slavecommand = "nohup locust --slave " + adhost \
+                               + " --no-reset-stats --logfile /home/dengpu/locustlogs/locust" \
+                               + str(i) + ".log --master-host  " + str(master_local_ip) \
+                               + " --master-port 6607 -f /home/dengpu/locustfile/" + task_name + '/' \
+                               + file_name[-7:-4] + ".py >& /dev/null < /dev/null &"
+                #     print(slavecommand)
+                fabrun(slavecommand, slave_ip, user='root')
+
+        # 上传文件到master上
+        clean(task_name=task_name, host_string=master_ip, user='root')
+        fab_unzip(task_name=task_name, filename=file_name, host_string=master_ip, user='root')
+
+        master_command = "locust --master --no-web  --no-reset-stats --expect-slaves  " + str(slave_num) + \
+                         " --logfile /home/dengpu/locustlogs/locust.log --only-summary --master-bind-host " + \
+                         str(master_local_ip) + " --master-bind-port 6607 --csv /home/dengpu/locustresult/" + \
+                         task_name + '/' + " -c " + \
+                         str(usersize) + " -r " + str(userspeed) + runtimestring + \
+                         " -f /home/dengpu/locustfile/" + task_name + '/' + file_name[-7:-4] + \
+                         ".py >& /dev/null < /dev/null"
+        # print(master_command)
+        fabrun(master_command, master_ip, user='root')
+        # return "true"
+    except Exception as e:
+        return jsonify({'msg': e})
 
 

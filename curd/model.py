@@ -2,10 +2,10 @@ from peewee import *
 from playhouse import pool
 from passlib.apps import custom_app_context
 
-from curd import app
+from curd import create_app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 
-
+app = create_app('defalut')
 db = pool.PooledMySQLDatabase(host='127.0.0.1', port=3306, user='root', database='test')
 
 @app.before_request
