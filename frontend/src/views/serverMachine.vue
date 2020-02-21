@@ -5,7 +5,7 @@
       <el-row :gutter="10">
         <el-col :span="7">
           <el-input
-            placeholder="请输入内容"
+            placeholder="根据服务器地址搜索"
             v-model.trim="seachIp"
             @keyup.enter.native="search_ip_data"
             clearable

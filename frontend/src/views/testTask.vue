@@ -5,7 +5,7 @@
       <el-row :gutter="10">
         <el-col :span="7">
           <el-input
-            placeholder="请输入内容"
+            placeholder="根据任务名称搜索"
             v-model.trim="search_task"
             @keyup.enter.native="search_data"
             clearable
@@ -165,7 +165,7 @@ export default {
           });
         }
       } catch (err) {
-        this.$message.error("获取务器列表数据失败!");
+        this.$message.error("获取任务列表数据失败!");
       }
     },
     // 监听pageSize改变的事件
@@ -208,19 +208,16 @@ export default {
     },
     //执行任务
     async runTask(row){
-      console.log(row)
       try{
-        // let data = {
-        //   user_name:row.user,
-        //   slaves_name: row.slaves_name,
-        //   master: row.master,
-        //   task_name: row.task_name,
-        //   master_local_ip: item.master_local_ip,
-        //   slave_local_ip: item.slave_local_ip,
-        //   slaves_core_size: item.slaves_core_size
-        // }
         const res = await this.$axios.post('/api/runTask/', row)
-        console.log(res)
+        if(res.status ==200)
+        {
+          this.$message.success('执行任务成功')
+          this.$router.push("/testReport")
+        }
+        else{
+          this.$message.error('执行任务失败')
+        }
       }catch{
         this.$message.error('执行任务出错')
       }

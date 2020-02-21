@@ -1,14 +1,23 @@
 from flask import request, jsonify, g, make_response, abort, current_app
-from curd.model import Machine, db, User, TestTask
+from curd.model import Machine, db, User, TestTask, TestReport
 from flask_restful import MethodView
 from playhouse.shortcuts import model_to_dict
-from fabric.api import settings, run, cd, put
+from fabric.api import settings, run, cd, put, get
 from . import auth, BASE_DIR, celery
+from celery.result import AsyncResult
 
 import json
 import os
+import time
+import csv
+
 
 zip_name = 'run.zip'
+request_csv = "_requests.csv"
+distribution_csv = "_distribution.csv"
+request_field = ['Method', 'Name', 'requests', 'failures', 'Median_response_time', 'Average_response_time',
+                 'Min_response_time', 'Max_response_time', 'Average_Content_Size', 'rps']
+distribution_field = ['Name', 'requests', '50%', '66%', '75%', '80%', '90%', '95%', '98%', '99%', '100%']
 
 
 class all_machine(MethodView):
@@ -197,7 +206,7 @@ class test_task_action(MethodView):
             return jsonify({'msg': e})
 
 
-# 登录接口, 查不到则直接注册
+# 登录接口, 返回token
 class admin_register(MethodView):
     @auth.login_required
     def post(self):
@@ -217,6 +226,7 @@ def verify_password(username_or_token, client_password):
         json_data = json.loads(request.get_data().decode('utf-8'))
         user_name = json_data['username']
         pwd = json_data['password']
+        # 查不到则直接注册
         user = User.select().where(User.user_name == user_name).first()
         if user is not None and not user.verify_password(pwd):
             abort(403)
@@ -232,12 +242,25 @@ def verify_password(username_or_token, client_password):
 
 
 class run_task(MethodView):
+
+    # 延迟执行任务, 并将task_id及task的相关信息存入report表
     @auth.login_required
     def post(self):
         data = request.get_data()
         json_data = json.loads(data)
-        progress_task.delay(json_data)
-        return 'true'
+        report_created_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        report = progress_task.delay(json_data)  # 延迟执行
+        report_id = report.id
+        master_ip = json_data['master']
+        user = json_data['user']
+        task_name = json_data['task_name']
+        run_time = json_data['runtime'][:-1]
+        # +60 只是为了保证让losust执行完，生成csv, 可以适当调整delay的时间
+        download_csv.apply_async((task_name, report_id, master_ip, 'root'), countdown=int(run_time)+60)
+        with db.atomic():
+            TestReport.create(reporttitle=report_id, reportid=report_id, user=user, report_task_name=task_name,
+                              report_created_time=report_created_time)
+        return jsonify({'msg': 'true', "report_id": report_id})
 
 
 # 上传文件至远程服务器
@@ -251,6 +274,13 @@ def fab_unzip(task_name, filename, host_string, user):
         with cd('/home/dengpu/locustfile/' + task_name):
             run('unzip ' + filename)
             run('rm -rf ' + filename)
+
+
+# 从远程服务器上获取文件
+def fabget(task_name, filename, report_id, host_string, user):
+    with settings(host_string=host_string, user=user):
+        with cd('/home/dengpu/locustresult/' + task_name):
+            get(filename, BASE_DIR + '/locustresult/' + task_name + '_' + report_id + filename)
 
 
 #  删除对应测试任务的文件夹
@@ -269,8 +299,8 @@ def fabrun(command, host_string, user):
 
 # 接收前端data, 执行任务前先把zip包传到相应的slaves和master上, 并解压
 # 在linux上执行locust任务
-@celery.task()
-def progress_task(json_data):
+@celery.task(bind=True)
+def progress_task(self, json_data):
     try:
         task_name = json_data['task_name']
         master_ip = json_data['master']
@@ -310,7 +340,7 @@ def progress_task(json_data):
                                + str(i) + ".log --master-host  " + str(master_local_ip) \
                                + " --master-port 6607 -f /home/dengpu/locustfile/" + task_name + '/' \
                                + file_name[-7:-4] + ".py >& /dev/null < /dev/null &"
-                #     print(slavecommand)
+                # print(slavecommand)
                 fabrun(slavecommand, slave_ip, user='root')
 
         # 上传文件到master上
@@ -326,8 +356,73 @@ def progress_task(json_data):
                          ".py >& /dev/null < /dev/null"
         # print(master_command)
         fabrun(master_command, master_ip, user='root')
-        # return "true"
     except Exception as e:
         return jsonify({'msg': e})
 
 
+# 对fabget封装一层，该任务可能需要delay执行， 防止直接对fabget进行delay
+@celery.task
+def download_csv(task_name,  report_id, host_string, user):
+    fabget(task_name, distribution_csv, report_id, host_string, user)
+    fabget(task_name, request_csv, report_id, host_string, user)
+
+
+class all_report(MethodView):
+    @auth.login_required
+    def get(self):
+        try:
+            report_task_name, page_size = request.args.get('report_task_name'), request.args.get('pageSize')
+            cur_page = request.args.get('curPage', 1, type=int)
+            qs = TestReport.filter(report_task_name=report_task_name, cur_page=cur_page, page_size=page_size)
+            result = [model_to_dict(row) for row in qs.result.iterator()]
+            for index, item in enumerate(result):
+                report_id = item['reportid']
+                report = AsyncResult(id=report_id, app=celery)
+                result[index]["reportstatus"] = report.state
+                result[index]['report_end_time'] = report.date_done
+            return jsonify({
+                'result': result[::-1],
+                'total': TestReport.counts(),
+                "cur_page": cur_page
+            })
+        except Exception as e:
+            return jsonify({"msg": e})
+
+
+class report_detil(MethodView):
+
+    # 根据report_id 和task_name 获取对应的csv文件
+    @auth.login_required
+    def get(self):
+        try:
+            report_id, report_task_name = request.args.get("reportid"), request.args.get("report_task_name")
+            request_csv_name = report_task_name + '_' + report_id + request_csv
+            distribution_csv_name = report_task_name + '_' + report_id + distribution_csv
+            request_data = []
+            distribution_data = []
+
+            with open(BASE_DIR + '/locustresult/' + distribution_csv_name, 'r') as f:
+                reader = csv.reader(f)
+                fieldnames = next(reader)
+                reader = csv.DictReader(f, fieldnames=fieldnames, delimiter=',')
+                for item in reader:
+                    item.update({'requests': item.pop('# requests')})
+                    distribution_data.append(item)
+
+            with open(BASE_DIR + '/locustresult/' + request_csv_name, 'r') as f:
+                reader = csv.reader(f)
+                fieldnames = next(reader)
+                reader = csv.DictReader(f, fieldnames=fieldnames, delimiter=',')
+                for item in reader:
+                    item.update({'requests': item.pop('# requests'), 'failures': item.pop('# failures'),
+                                 'Median_response_time': item.pop('Median response time'),
+                                 'Average_response_time': item.pop('Average response time'),
+                                 'Min_response_time': item.pop('Min response time'),
+                                 'Max_response_time': item.pop('Max response time'),
+                                 'Average_Content_Size': item.pop('Average Content Size'),
+                                 'rps': item.pop('Requests/s')})
+                    request_data.append(item)
+
+            return jsonify({'request_file': request_data, 'distribution_file': distribution_data})
+        except Exception as e:
+            return jsonify({"msg": e})

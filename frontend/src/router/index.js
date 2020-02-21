@@ -7,7 +7,7 @@ import testTask from '../views/testTask'
 import home from '../views/home'
 import addTask from '../views/addTask.vue'
 import editTask from '../views/editTask.vue'
-
+import reportDetail from '../views/reportDetail.vue'
 
 export default [
 	{
@@ -69,6 +69,15 @@ export default [
 				component:editTask,
 				meta:{
 					title:['编辑测试任务'],
+					requireAuth: true
+				}
+			},
+			{
+				name:'reportDetail',
+				path:'/reportDetail',
+				component:reportDetail,
+				meta:{
+					title:['报告详情页'],
 					requireAuth: true
 				}
 			},

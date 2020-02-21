@@ -63,7 +63,18 @@ pymonitor.py 可以监控python脚本的实时变化, 简单模拟一个服务�
     查看状态
     rabbitmqctl status 
     访问可视化监控插件的界面
-    浏览器内输入 http://localhost:15672,默认的用户名密码都是guest,登录后可以在Admin那一列菜单内添加自己的用户
+    浏览器内输入 http://localhost:15672,
+    默认的用户名密码都是guest,登录后可以在Admin那一列菜单内添加自己的用户
     rabbitmqctl stop 关闭
+  
+  监控  flower
     
+    pip install flower
+    启动flower
+    celery flower --address=127.0.0.1 --port=5555
+    可通过浏览器查看
+    http://127.0.0.1:5555
+
+
+
     

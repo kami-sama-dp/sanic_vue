@@ -2,11 +2,13 @@ from peewee import *
 from playhouse import pool
 from passlib.apps import custom_app_context
 
-from curd import create_app
+from curd import app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
+import datetime
 
-app = create_app('defalut')
+# app = create_app('default')
 db = pool.PooledMySQLDatabase(host='127.0.0.1', port=3306, user='root', database='test')
+
 
 @app.before_request
 def conn():
@@ -27,13 +29,13 @@ class BaseModel(Model):
         database = db
 
     @classmethod
-    def filter(cls, ip=None, taskname=None, report_name=None, cur_page=1, page_size=20):
+    def filter(cls, ip=None, taskname=None, report_task_name=None, cur_page=1, page_size=20):
         if ip:
             cls.qs = cls.select().where(cls.ip.contains(ip))
         elif taskname:
             cls.qs = cls.select().where(cls.taskname.contains(taskname))
-        elif report_name:
-            cls.qs = cls.select().where(cls.report_name.contains(report_name))
+        elif report_task_name:
+            cls.qs = cls.select().where(cls.report_task_name.contains(report_task_name))
         else:
             cls.qs = cls.select()
         cls.result = cls.qs.order_by(cls.id).paginate(cur_page, int(page_size))
@@ -75,19 +77,6 @@ class TestTask(BaseModel):
     testhost = CharField(verbose_name="目标主机", max_length=200, null=True)
     slaves_name = CharField(default='')
     slaves_core_size = CharField(default=0)
-
-    # def clientsize(self):
-    #     result = 0
-    #     for slave in self.slaves.get_queryset():
-    #         result += slave.coresize
-    #     return result
-    #
-    # def getslavename(self):
-    #     tmp = ""
-    #     for slave in self.slaves.get_queryset():
-    #         tmp += slave.ip + ','
-    #     return tmp
-
     usersize = IntegerField(verbose_name="并发用户数", default=10)
     userspeed = IntegerField(verbose_name="每秒启动用户数", default=10)
     indextimes = CharField(verbose_name="超时指标", max_length=20, default="10,20,30")
@@ -96,6 +85,24 @@ class TestTask(BaseModel):
     class Meta:
         table_name = 'testtask'
 
+
+class TestReport(BaseModel):
+    reporttitle = CharField(verbose_name="报告名称", max_length=100, default="", unique=True)
+    reportid = CharField(verbose_name="报告id", max_length=100)
+    user = CharField(verbose_name="创建人")
+    report_task_name = CharField(verbose_name="测试任务")
+    report_created_time = DateTimeField(verbose_name="创建时间")
+    report_run_time = DateTimeField(verbose_name="执行时间", null=True)
+    reportstatus = CharField(verbose_name="执行状态", default='')
+    report_end_time = DateTimeField(verbose_name="结束时间", null=True)
+    # 报告zip下载路径
+    # url = models.CharField(verbose_name='链接', max_length=300, null=True, blank=True)
+    # # 服务器host
+    # urlhost = models.CharField(verbose_name='host', max_length=100, null=True, blank=True)
+    # jsonstats = models.TextField(verbose_name="服务器监控数据", blank=True, null=True, default="")
+
+    class Meta:
+        table_name = "testreport"
 
 
 class User(BaseModel):
@@ -129,5 +136,5 @@ class User(BaseModel):
         table_name = 'user'
 
 
-db.create_tables([Machine, User, TestTask], safe=True)
+db.create_tables([Machine, User, TestTask, TestReport], safe=True)
 

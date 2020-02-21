@@ -5,13 +5,13 @@
       <el-row :gutter="10">
         <el-col :span="7">
           <el-input
-            placeholder="请输入内容"
-            v-model.trim="seachIp"
-            @keyup.enter.native="search_ip_data"
+            placeholder="根据测试任务名称搜索"
+            v-model.trim="search_report"
+            @keyup.enter.native="search_report_data"
             clearable
-            @clear="search_ip_data"
+            @clear="search_report_data"
           >
-            <el-button slot="append" icon="el-icon-search" @click="search_ip_data" />
+            <el-button slot="append" icon="el-icon-search" @click="search_report_data" />
           </el-input>
         </el-col>
         <!-- <el-col :span="2">
@@ -28,14 +28,24 @@
         v-loading="loading"
       >
         <el-table-column label="#" width="80%" type="index" :index="indexMethod"></el-table-column>
-        <el-table-column label="报告id" prop="ip"></el-table-column>
-        <el-table-column label="报告名称" prop="local_ip"></el-table-column>
-        <el-table-column label="测试任务" prop="port"></el-table-column>
-        <el-table-column label="创建人" prop="coresize"></el-table-column>
-        <el-table-column label="创建时间" prop="mtype"></el-table-column>
-        <el-table-column label="执行时间" prop="mtype"></el-table-column>
-        <el-table-column label="结束时间" prop="mtype"></el-table-column>
-        <el-table-column label="备注" prop="desc"></el-table-column>
+        <!-- <el-table-column label="报告id" prop="reportid" width="250%"></el-table-column> -->
+        <el-table-column label="报告名称" prop="reporttitle" width="300%">
+          <template v-slot="scope">
+            <el-input v-model="scope.row.reporttitle" placeholder></el-input>
+          </template>
+        </el-table-column>
+        <el-table-column label="测试任务" prop="report_task_name"></el-table-column>
+        <el-table-column label="创建人" prop="user"></el-table-column>
+        <el-table-column label="创建时间" prop="report_created_time"></el-table-column>
+        <el-table-column label="执行时间" prop="report_run_time"></el-table-column>
+        <el-table-column label="结束时间" prop="report_end_time"></el-table-column>
+        <el-table-column label="状态" prop="status">
+          <template v-slot="scope">
+            <el-tag v-if="scope.row.reportstatus=='SUCCESS'" type="success">执行完成</el-tag>
+            <el-tag v-if="scope.row.reportstatus=='PENDING'">正在执行</el-tag>
+            <el-tag v-if="scope.row.reportstatus=='FAILURE'" type="danger">执行出错</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作">
           <template v-slot="scope">
             <el-button
@@ -43,6 +53,12 @@
               icon="el-icon-edit"
               size="mini"
               @click="editShowDialog(scope.row)"
+            ></el-button>
+            <el-button
+              type="primary"
+              icon="el-icon-info"
+              size="mini"
+              @click="showReportDetail(scope.row)"
             ></el-button>
             <el-button
               type="danger"
@@ -76,243 +92,127 @@ export default {
   },
   inject: ["reload"],
   data() {
-    //自定义校验规则
-    var checkIp = (rule, value, callback) => {
-      var regIp = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
-      if (regIp.test(value)) {
-        return callback();
-      } else {
-        callback(new Error("请输入合法的ip"));
-      }
-    };
-    var checkcoreSize = (rule, value, callback) => {
-      var regcoreSize = /^\+?[1-9][0-9]*$/;
-      if (regcoreSize.test(value)) {
-        return callback();
-      } else {
-        callback(new Error("请输入大于0的整数"));
-      }
-    };
     return {
+      num: "11",
       loading: true, //默认开启加载动画特效
-      seachIp: "",
-      dialogTitle: "",
-      titleMap: {
-        showaddDialog: "添加服务器",
-        showeditDialog: "修改服务器"
-      },
-      serverMachine: [],
-      form: {
-        id: 0,
-        ip: "",
-        local_ip: "",
-        port: "22",
-        coresize: "",
-        mtype: false,
-        desc: ""
-      },
-      dialogFormVisible: false,
-      formLabelWidth: "120px",
+      search_report: "",
+      testReport: [],
       queryInfo: {
-        ip: "",
+        report_task_name: "",
         curPage: 1,
         pageSize: 10
       },
-      total: 0,
-      addMachineRules: {
-        ip: [
-          { required: true, message: "请输入地址", trigger: "blur" },
-          { validator: checkIp }
-        ],
-        local_ip: [
-          { required: true, message: "请输入地址", trigger: "blur" },
-          { validator: checkIp }
-        ],
-        port: [{ required: true, message: "请输入端口", trigger: "blur" }],
-        coresize: [
-          { required: true, message: "请输入核心数量", trigger: "blur" },
-          { validator: checkcoreSize }
-        ]
-      }
+      total: 0
     };
   },
   created() {
-    this.getMachineList();
+    this.getReportList();
   },
   methods: {
     // 翻页，连续index索引
     indexMethod(index) {
       return index + 1 + (this.queryInfo.curPage - 1) * this.queryInfo.pageSize;
     },
-    async search_ip_data() {
+    async search_report_data() {
       //搜索框查询, 后期可优化成实时搜索
-      this.queryInfo.ip = this.seachIp;
+      this.queryInfo.report_task_name = this.search_report;
       this.queryInfo.curPage = 1;
-      await this.getMachineList();
-    },
-    closeDialog(refName) {
-      this.form = {
-        id: 0,
-        ip: "",
-        local_ip: "",
-        port: "22",
-        coresize: "",
-        mtype: false,
-        desc: ""
-      };
-
-      this.$refs[refName].resetFields();
-
-      this.dialogFormVisible = false;
-    },
-    showaddDialog() {
-      this.dialogTitle = "showaddDialog";
-      this.dialogFormVisible = true;
-    },
-    // 将数据显示在弹出的编辑框
-    async editShowDialog(row) {
-      this.dialogTitle = "showeditDialog";
-      this.form.id = row.id;
-      this.form.local_ip = row.local_ip;
-      this.form.ip = row.ip;
-      this.form.port = row.port;
-      this.form.coresize = row.coresize;
-      this.form.mtype = row.mtype == "是" ? true : false;
-      this.form.desc = row.desc;
-      this.dialogFormVisible = true;
+      await this.getReportList();
     },
     // 获取数据
-    async getMachineList() {
+    async getReportList() {
       try {
-        const res = await this.$axios.get("/api/machine/", {
+        const res = await this.$axios.get("/api/reportList/", {
           params: this.queryInfo
         });
-        if (res.status == 200) {
-          // this.$store.commit("remove_master")
-          // this.$store.commit("remove_slaves")
-          this.total = res.data.total;
-          // 直接清库导致本地存储数据还在, 此时清空一下,保持数据一致性
-          if (this.total == 0) {
-            this.$store.commit("remove_master");
-            this.$store.commit("remove_slaves");
-          }
-          this.serverMachine = [];
-          res.data.result.forEach(item => {
-            const table_item = {
-              id: item.id,
-              ip: item.ip,
-              local_ip: item.local_ip,
-              port: item.port,
-              coresize: item.coresize,
-              mtype: item.mtype == true ? "是" : "否",
-              desc: item.desc
-            };
-            if (table_item.mtype == "是") {
-              this.$store.commit("set_master", {
-                id: table_item.id,
-                ip: table_item.ip
-                //   local_ip: item.local_ip
-              });
-            } else {
-              this.$store.commit("set_slaves", {
-                id: table_item.id,
-                ip: table_item.ip
-              });
-            }
-            this.serverMachine.push(table_item);
-          });
-          this.loading = false; //关闭加载动画特效
-        } else {
-          return;
-        }
-      } catch (err) {
-        this.$message.error("获取务器列表数据失败");
-      }
-    },
-    //点击确定按钮,添加数据或修改数据
-    async addMachine(refName) {
-      this.$refs[refName].validate(async valid => {
-        if (!valid) {
-          this.$message.error("格式有误");
-          return;
-        } else if (this.dialogTitle == "showeditDialog") {
-          this.$store.commit("remove_master");
-          this.$store.commit("remove_slaves");
-          this.loading = true;
-          let formData = JSON.stringify(this.form);
-          this.dialogFormVisible = false;
-          const res = await this.$axios.put("/api/machine/", formData);
-          if (res.status == 200) {
-            this.$message.success("编辑成功");
-            this.getMachineList();
-          } else {
-            return;
-          }
-        } else if (this.dialogTitle == "showaddDialog") {
-          this.loading = true;
-          let formData = JSON.stringify(this.form);
-          this.dialogFormVisible = false;
-          const res = await this.$axios.post("/api/machine/", formData);
-          if (res.status == 200) {
-            this.$message.success("添加成功");
-            //  this.reload(); // 刷新页面,此时会回到第一页（实际）， 而不是在当前页面刷新（预期）， 此问题未解决
-            this.getMachineList(); //  刷新页面的另一种处理方式
-            // this.loading = false; //关闭加载动画特效
-          } else {
-            return;
-          }
-        }
-      });
-      this.$refs[refName].resetFields();
-      this.dialogFormVisible = false;
-    },
-    async removeMachineById(row) {
-      const res = await this.$confirm("是否删除？", "确认信息", {
-        distinguishCancelAndClose: false,
-        confirmButtonText: "确认",
-        cancelButtonText: "取消"
-      }).catch(err => err);
-      if (res == "confirm") {
-        this.$store.commit("remove_master");
-        this.$store.commit("remove_slaves");
-        let param = { id: row.id };
-        const _delete = await this.$axios.delete("/api/machine/", {
-          data: param
+        this.total = res.data.total;
+        this.testReport = [];
+        res.data.result.forEach(item => {
+          const table_item = {
+            reportid: item.reportid,
+            reporttitle: item.reporttitle,
+            user: item.user,
+            report_created_time: this.getUTCDateTime(item.report_created_time),
+            report_run_time: item.report_run_time,
+            report_end_time:
+              item.report_end_time == null
+                ? ""
+                : this.getDateTime(item.report_end_time),
+            report_task_name: item.report_task_name,
+            reportstatus: item.reportstatus
+          };
+          this.testReport.push(table_item);
         });
-        if (_delete.status == 200) {
-          this.$message.success("删除成功");
-          this.getMachineList();
-        } else {
-          this.$message.error("删除失败");
-          return;
-        }
-      } else if (res == "cancel") {
-        return this.$message.info("已取消删除");
+        this.loading = false;
+      } catch (err) {
+        this.$message.error("获取报告列表数据失败");
       }
-    },
-    // 取消按钮, 清空表单数据
-    async cancelOff(refName) {
-      this.form = {
-        id: 0,
-        ip: "",
-        local_ip: "",
-        port: "22",
-        coresize: "",
-        mtype: false,
-        desc: ""
-      };
-      this.$refs[refName].resetFields();
-      this.dialogFormVisible = false;
     },
     // 监听pageSize改变的事件
     handleSizeChange(pageSize) {
       this.queryInfo.pageSize = pageSize;
-      this.getMachineList();
+      this.getReportList();
     },
     //监听页码值改变的事件
     handleCurrentChange(curPage) {
       this.queryInfo.curPage = curPage;
-      this.getMachineList();
+      this.getReportList();
+    },
+    /* 获取日期时间格式*/
+    getUTCDateTime(date) {
+      date = new Date(date);
+      var year = date.getUTCFullYear();
+      var month = date.getUTCMonth() + 1;
+      var day =
+        date.getUTCDate() < 10 ? "0" + date.getUTCDate() : date.getUTCDate();
+      var hh =
+        date.getUTCHours() < 10 ? "0" + date.getUTCHours() : date.getUTCHours();
+      var mm =
+        date.getUTCMinutes() < 10
+          ? "0" + date.getUTCMinutes()
+          : date.getUTCMinutes();
+      var ss =
+        date.getUTCSeconds() < 10
+          ? "0" + date.getUTCSeconds()
+          : date.getUTCSeconds();
+      return year + "-" + month + "-" + day + " " + hh + ":" + mm + ":" + ss;
+    },
+    getDateTime(date) {
+      date = new Date(date);
+      var year = date.getFullYear();
+      var month = date.getMonth() + 1;
+      var day = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+      var hh = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
+      var mm =
+        date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
+      var ss =
+        date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds();
+      return year + "-" + month + "-" + day + " " + hh + ":" + mm + ":" + ss;
+    },
+    async showReportDetail(row) {
+      if (row.reportstatus == "SUCCESS") {
+        let data = {
+          reportid: row.reportid,
+          report_task_name: row.report_task_name
+        };
+        const res = await this.$axios.get("/api/report_detail/", {
+          params: data
+        });
+        if (res.status == 200) {
+          this.$router.push({
+            path: "/reportDetail",
+            query: {
+              data: window.btoa(window.encodeURIComponent(JSON.stringify(res.data)))
+            }
+          }); //对url后面的参数加密}
+        } else {
+          this.$message.error("获取详细数据失败");
+        }
+      } else if (row.reportstatus == "FAILURE") {
+        this.$message.error("执行出错没有报告");
+      } else {
+        this.$message.info("请等待任务执行完成");
+      }
     }
   }
 };

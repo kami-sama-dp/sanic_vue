@@ -6,7 +6,12 @@ from celery import Celery
 from flask_httpauth import HTTPBasicAuth
 import os
 
-celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
+celery = Celery(__name__, broker=Config.CELERY_BROKER_URL, backend=Config.CELERY_RESULT_BACKEND)
+# 时区
+celery.conf.timezone = 'Asia/Shanghai'
+# 是否使用UTC
+celery.conf.enable_utc = True
+
 auth = HTTPBasicAuth()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,6 +32,7 @@ def make_celery(app):
     )
     # celery.conf.update(app.config)
 
+
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
             with app.app_context():
@@ -40,12 +46,16 @@ def make_celery(app):
 app = create_app('default')
 api = Api(app)
 
+CORS(app, resources=r'/*')
+
 from . import controller
 
 api.add_resource(controller.all_machine, '/api/machine/')
 api.add_resource(controller.admin_register, '/api/login/')
 api.add_resource(controller.test_task_action, '/api/test_task/')
 api.add_resource(controller.run_task, '/api/runTask/')
+api.add_resource(controller.all_report, '/api/reportList/')
+api.add_resource(controller.report_detil, '/api/report_detail/')
 
 
 
