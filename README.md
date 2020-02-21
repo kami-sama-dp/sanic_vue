@@ -1,4 +1,6 @@
-# flask_vue
+# 压测平台(locust为核心) V1.0
+ 前端Vue， 后端flask
+ 
 最好在chrome下打开，safari 有些样式初次加载有问题
 
 技术栈：Vue + Vuex + ElementUI + flask + peewee + HTTPBasicAuth + celery + fabric (前后端分离MVVM模式)
@@ -35,7 +37,7 @@ pymonitor.py 可以监控python脚本的实时变化, 简单模拟一个服务�
   
     nohup python3  run.py >/dev/null 2>&1 &
     
-  启动redis
+  启动redis(不启动 报告界面无法获取数据)
   
     nohup redis-server > web6.log 2>&1 < /dev/null&
    
