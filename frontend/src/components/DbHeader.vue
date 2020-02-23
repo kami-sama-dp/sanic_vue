@@ -2,7 +2,7 @@
     <el-header>
       <div>
         <img src alt />
-        <span>管理平台</span>
+        <span>Locust压测平台</span>
       </div>
       <div>
         <span style="margin-right:30px">欢迎,  {{username}}</span>

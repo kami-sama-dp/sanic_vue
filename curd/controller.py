@@ -15,10 +15,6 @@ import csv
 zip_name = 'run.zip'
 request_csv = "_requests.csv"
 distribution_csv = "_distribution.csv"
-request_field = ['Method', 'Name', 'requests', 'failures', 'Median_response_time', 'Average_response_time',
-                 'Min_response_time', 'Max_response_time', 'Average_Content_Size', 'rps']
-distribution_field = ['Name', 'requests', '50%', '66%', '75%', '80%', '90%', '95%', '98%', '99%', '100%']
-
 
 class all_machine(MethodView):
     # 获取服务器列表接口
@@ -376,10 +372,18 @@ class all_report(MethodView):
             qs = TestReport.filter(report_task_name=report_task_name, cur_page=cur_page, page_size=page_size)
             result = [model_to_dict(row) for row in qs.result.iterator()]
             for index, item in enumerate(result):
-                report_id = item['reportid']
-                report = AsyncResult(id=report_id, app=celery)
-                result[index]["reportstatus"] = report.state
-                result[index]['report_end_time'] = report.date_done
+                if item['reportstatus'] == 'SUCCESS':
+                    continue
+                else:
+                    report_id = item['reportid']
+                    report = AsyncResult(id=report_id, app=celery)
+                    if report.state == "SUCCESS":
+                        result[index]["reportstatus"] = report.state
+                        result[index]['report_end_time'] = report.date_done
+                        with db.atomic():
+                            TestReport.update(reportstatus=report.state, report_end_time=report.date_done).\
+                                where(TestReport.reportid == report_id).execute()
+                    result[index]["reportstatus"] = report.state
             return jsonify({
                 'result': result[::-1],
                 'total': TestReport.counts(),
