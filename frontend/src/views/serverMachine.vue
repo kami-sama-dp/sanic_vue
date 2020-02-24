@@ -305,7 +305,7 @@ export default {
       this.dialogFormVisible = false;
     },
     async removeMachineById(row) {
-      const res = await this.$confirm("是否删除？", "确认信息", {
+      const res = await this.$confirm("是否删除?", "确认信息", {
         distinguishCancelAndClose: false,
         confirmButtonText: "确认",
         cancelButtonText: "取消"

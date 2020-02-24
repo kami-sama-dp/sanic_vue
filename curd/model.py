@@ -116,7 +116,7 @@ class User(BaseModel):
     def verify_password(self, password):
         return custom_app_context.verify(password, self.password)
 
-    def generate_auth_token(self, expiration=7200):
+    def generate_auth_token(self, expiration=60*60*5):
         s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'name': str(User.user_name)})
 

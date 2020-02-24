@@ -52,7 +52,7 @@
               type="primary"
               icon="el-icon-edit"
               size="mini"
-              @click="editShowDialog(scope.row)"
+              @click="editReportTitle(scope.row)"
             ></el-button>
             <el-button
               type="primary"
@@ -64,7 +64,8 @@
               type="danger"
               icon="el-icon-delete"
               size="mini"
-              @click="removeMachineById(scope.row)"
+              v-if="scope.row.reportstatus=='SUCCESS'"
+              @click="removeReportById(scope.row)"
             ></el-button>
           </template>
         </el-table-column>
@@ -202,7 +203,9 @@ export default {
           this.$router.push({
             path: "/reportDetail",
             query: {
-              data: window.btoa(window.encodeURIComponent(JSON.stringify(res.data)))
+              data: window.btoa(
+                window.encodeURIComponent(JSON.stringify(res.data))
+              )
             }
           }); //对url后面的参数加密}
         } else {
@@ -212,6 +215,37 @@ export default {
         this.$message.error("执行出错没有报告");
       } else {
         this.$message.info("请等待任务执行完成");
+      }
+    },
+    async removeReportById(row) {
+      const res = await this.$confirm("是否删除?", "确认信息", {
+        distinguishCancelAndClose: false,
+        confirmButtonText: "确认",
+        cancelButtonText: "取消"
+      }).catch(err => err);
+      if (res == "confirm") {
+        let param = { reportid: row.reportid };
+        const _delete = await this.$axios.delete("/api/report_detail/", {
+          data: param
+        });
+        if (_delete.status == 200) {
+          this.$message.success("成功删除");
+          this.getReportList();
+        } else {
+          this.$message.error("删除失败");
+        }
+      } else if (res == "cancel") {
+        return this.$message.info("已取消删除");
+      }
+    },
+    async editReportTitle(row) {
+      let data = JSON.stringify(row);
+      const res = await this.$axios.put("/api/report_detail/", data);
+      if (res.status == 200) {
+        this.$message.success("编辑成功");
+      } else {
+        this.$message.error("编辑失败");
+        return;
       }
     }
   }

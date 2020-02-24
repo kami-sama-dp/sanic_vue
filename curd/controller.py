@@ -377,13 +377,12 @@ class all_report(MethodView):
                 else:
                     report_id = item['reportid']
                     report = AsyncResult(id=report_id, app=celery)
+                    result[index]["reportstatus"] = report.state
                     if report.state == "SUCCESS":
-                        result[index]["reportstatus"] = report.state
                         result[index]['report_end_time'] = report.date_done
                         with db.atomic():
                             TestReport.update(reportstatus=report.state, report_end_time=report.date_done).\
                                 where(TestReport.reportid == report_id).execute()
-                    result[index]["reportstatus"] = report.state
             return jsonify({
                 'result': result[::-1],
                 'total': TestReport.counts(),
@@ -428,5 +427,28 @@ class report_detil(MethodView):
                     request_data.append(item)
 
             return jsonify({'request_file': request_data, 'distribution_file': distribution_data})
+        except Exception as e:
+            return jsonify({"msg": e})
+
+    @auth.login_required
+    def put(self):
+        try:
+            data = request.get_data()
+            json_data = json.loads(data.decode("utf-8"))
+            report_id = json_data["reportid"]
+            report_title = json_data["reporttitle"]
+            TestReport.update(reporttitle=report_title).where(TestReport.reportid == report_id).execute()
+            return "true"
+        except Exception as e:
+             return jsonify({"msg": e})
+
+
+    @auth.login_required
+    def delete(self):
+        try:
+            data = request.get_json()
+            report_id = data["reportid"]
+            TestReport.delete().where(TestReport.reportid == report_id).execute()
+            return "true"
         except Exception as e:
             return jsonify({"msg": e})
