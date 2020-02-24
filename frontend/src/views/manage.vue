@@ -52,10 +52,10 @@
               <span>测试报告</span>
             </el-menu-item>
             <!-- </el-submenu> -->
-            <el-menu-item index="dataAnalysis">
+            <!-- <el-menu-item index="dataAnalysis">
               <i class="el-icon-location"></i>
               <span slot="title">数据分析</span>
-            </el-menu-item>
+            </el-menu-item> -->
           </el-menu>
         </el-aside>
       </el-aside>
