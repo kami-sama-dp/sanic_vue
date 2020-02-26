@@ -96,4 +96,7 @@ export default {
     border-right: none;
   }
 }
+.el-main {
+  height: 100%;
+}
 </style>

@@ -32,9 +32,6 @@
 .el-aside {
   background-color: #244e92;
 }
-.el-main {
-  background-color: hsl(240, 8%, 83%);
-}
 .home-container {
   height: 70px;
 }
