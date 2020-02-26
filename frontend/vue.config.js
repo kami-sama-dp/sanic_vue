@@ -1,4 +1,5 @@
 module.exports = {
+    publicPath: '',
     devServer:{
         proxy:"http://localhost:8888/", //解决跨域问题
         overlay: {

@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 from flask import Flask
 from flask_restful import Api
 from flask_cors import CORS
@@ -17,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # 创建Flask App的工厂函数
-def create_app(config_name) -> 'app':
+def create_app(config_name):
   app = Flask(__name__)
   app.config.from_object(Config)
   return app

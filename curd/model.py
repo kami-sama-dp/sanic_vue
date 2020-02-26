@@ -7,7 +7,11 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSigna
 import datetime
 
 # app = create_app('default')
-db = pool.PooledMySQLDatabase(host='127.0.0.1', port=3306, user='root', database='test')
+db = pool.PooledMySQLDatabase(host='127.0.0.1', port=3306, user='root', database='test', charset='utf8')
+# 获取游标
+cursor = db.cursor()
+# 修改数据库连接是以utf8mb4编码格式进行的连接
+cursor.execute('SET NAMES utf8mb4;')
 
 
 @app.before_request

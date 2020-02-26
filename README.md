@@ -77,6 +77,65 @@ pymonitor.py 可以监控python脚本的实时变化, 简单模拟一个服务�
     可通过浏览器查看
     http://127.0.0.1:5555
 
+Linux下的配置：
 
+  使用supervisord
+  
+    pip install supervisor
+    在根目录下添加配置:
+    echo_supervisord_conf> supervisord.conf 
+    [program:celeryd]
+    command=celery worker -A curd.celery -l info  -f celery.log   --concurrency=15
+    ;stdout_logfile=/var/log/celery/celeryd.log
+    ;stderr_logfile=/var/log/celery/celeryd.log
+    autostart=true
+    autorestart=true
+    startsecs=10
 
+    启动
+    supervisord
+    重启
+    supervisorctl reload
     
+   在linux上部署flask生产环境
+       
+     pip install gunicorn
+     vim gunicorn.sh
+     nohup gunicorn -w 4 -b 0.0.0.0:8888 run:app > gunicorn.log 2>&1 & 
+     sh gunicorn.sh 
+     -w 4是指预定义的工作进程数为4，
+     -b 127.0.0.1:4000指绑定地址和端口
+     
+   部署Vue(nginx)
+        
+     在linux上打包得到dist
+     /usr/local/nginx/conf
+     在nginx.conf 第一行修改 user root;(解决403问题)
+     sudo ./nginx -s stop 停止nginx
+     
+   Linux下mysql中文乱码:
+    
+     locate my.cnf
+     ps aux|grep mysql|grep 'my.cnf'(查看是否使用了指定目录的my.cnf)
+     mysql --help|grep 'my.cnf'(查看mysql默认读取my.cnf的目录, 顺序排前的优先。)
+     [mysqld]
+     character-set-server=utf8
+     [client]
+     default-character-set=utf8
+     [mysql]
+     default-character-set=utf8
+     show full columns from machine; 查询表的字符编码
+     sudo  service mysqld restart  (重启mysql)
+     show variables like 'character%';    查看数据库的编码格式
+     
+     show create database test; 查看数据库字符编码
+     alter database test default character set utf8 collate utf8_general_ci;
+     更改数据库字符编码
+     
+     alter table `表名` convert to character set utf8;
+       一次性修改表中所有字段的字符集语句
+   
+   在linux上用gunicorn部署flask
+   
+     touch  gunicorn.sh
+     nohup gunicorn -w 1 -b 0.0.0.0:8888 run:app > gunicorn.log 2>&1 &
