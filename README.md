@@ -111,7 +111,10 @@ Linux下的配置：
      在linux上打包得到dist
      /usr/local/nginx/conf
      在nginx.conf 第一行修改 user root;(解决403问题)
-     sudo ./nginx -s stop 停止nginx
+     sudo ./nginx -s stop(reload)停止nginx(重新加载conf)
+     ps axu | grep nginx
+     nginx -t 查看具体使用那个conf  -c + 路径(具体哪个conf)
+     
      
    Linux下mysql中文乱码:
     
