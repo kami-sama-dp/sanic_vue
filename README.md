@@ -10,20 +10,20 @@
 pymonitor.py 可以监控python脚本的实时变化, 简单模拟一个服务端热更新功能
 
 
-  实现的模块：
+##  实现的模块：
  
     1. 登录注册(带token，过期验证) 使用的peewee(orm)
     2. CRUD服务器资源列表、测试任务列表
     3. 展示测试报告(locust)
     4. 上传文件到远程服务器, fabric远程操作linux命令,
     
-  使用celery实现分布式异步任务处理
+   使用celery实现分布式异步任务处理
 
     celery worker -A curd.celery -l info  -f celery.log 
 
     启动celery worker 更改celery配置需要重启celery
   
- 消息队列存放在rabbitmq或者redis(broker中间件)
+   消息队列存放在rabbitmq或者redis(broker中间件)
  
  任务状态的结果存在redis(backend), 前端根据这个状态更新相应的任务状态
  
@@ -50,7 +50,7 @@ pymonitor.py 可以监控python脚本的实时变化, 简单模拟一个服务�
  
     sudo sbin/rabbitmq-plugins enable rabbitmq_management
 
-配置环境变量
+ 配置rabbitmq环境变量
 
     vi ~/.bash_profile
     export RABBIT_HOME= /usr/local/Cellar/rabbitmq/3.8.2
@@ -77,7 +77,7 @@ pymonitor.py 可以监控python脚本的实时变化, 简单模拟一个服务�
     可通过浏览器查看
     http://127.0.0.1:5555
 
-Linux下的配置：
+## Linux下的配置：
 
   使用supervisord
   
