@@ -63,6 +63,7 @@ class Machine(BaseModel):
     coresize = IntegerField()
     mtype = BooleanField(default=False)
     desc = TextField(default='')
+    is_running = BooleanField(default=False)
 
     class Meta:
         table_name = "machine"
@@ -85,6 +86,7 @@ class TestTask(BaseModel):
     userspeed = IntegerField(verbose_name="每秒启动用户数", default=10)
     indextimes = CharField(verbose_name="超时指标", max_length=20, default="10,20,30")
     desc = TextField(verbose_name="备注")
+    task_is_running = BooleanField(default=False)
 
     class Meta:
         table_name = 'testtask'
