@@ -244,6 +244,14 @@ class run_task(MethodView):
     def post(self):
         data = request.get_data()
         json_data = json.loads(data)
+        slaves_name = json_data['slaves_name']
+        # for slave in slaves_name:
+        #     a = Machine.select().where(Machine.ip == slave).first().is_running
+        #     if a:
+        #         return jsonify({'msg': '当前机器正在执行任务', "state": 0})
+        #     else:
+        #         Machine.update(is_running=True).where(Machine.ip == slave).execute()
+
         report_created_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
         report = progress_task.delay(json_data)  # 延迟执行
         report_id = report.id
